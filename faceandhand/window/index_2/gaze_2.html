@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.css" crossorigin="anonymous">
+  <link rel="stylesheet" type="text/css" href="demo.css" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.1/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/holistic.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.21.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.21.0/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.5/firebase-database.js"></script>
+<link rel="stylesheet" href="gaze.css">
+<style type="text/css">
+    body{
+        /*background-image: url(img/bg_01.png);*/
+    background-size: auto 100vh;
+    background-position: left top }
+    .popup_91 .activated_img{
+        background-image: url(img/qr.png) !important;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+
+    }
+    .popup_91 .activated_img{filter: none !important}
+</style>
+</head>
+
+<body>
+
+
+  <!-- CONTENTS -->
+  <div class="container">
+
+    <div class="columns">
+      
+      <!-- WEBCAM INPUT -->
+            <video class="input_video4"></video>
+
+            <canvas class="output4" width="960px" height="720px"></canvas>
+    </div>
+    
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  <div style="visibility: hidden" class="control4">
+  </div>
+</div>
+    <div class="wrapper">
+        <div class='dot'></div>
+    </div>
+
+    <script type="text/javascript">
+
+
+        const video4 = document.getElementsByClassName('input_video4')[0];
+        const out4 = document.getElementsByClassName('output4')[0];
+        const controlsElement4 = document.getElementsByClassName('control4')[0];
+        const canvasCtx4 = out4.getContext('2d');
+        var c_width =$('.output4').outerWidth()
+        var c_height =$('.output4').outerHeight()
+
+        var counter = 0
+         var popup_l = 0
+         var popup_t = 0
+         var popup_w = 0
+         var popup_h = 0
+         var center_x, center_y;
+         var activated = false
+         var act_num = 0
+
+         var lr_angle, td_angle;
+
+        const db = [
+                '<rect x="4" y="0.5" class="st0" width="465.8" height="10.5"/>',
+                '<rect x="340.3" y="16.7" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="423.4" y="99.7" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="378.2" y="176.2" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="405" y="158.3" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="444.3" y="185.7" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="444.3" y="213" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="396.4" y="229.7" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="352.4" y="237.4" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="349.9" y="92.9" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="422.7" y="61.5" class="st0" width="24.1" height="13.8"/>',
+                '<rect x="286.9" y="212.1" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="267.5" y="255.9" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="432.9" y="30.5" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="377.5" y="28.6" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="393.4" y="52.4" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="317.9" y="157.9" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="348.6" y="125.8" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="404.3" y="129.3" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="451.2" y="135.4" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="423.2" y="236" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="440.8" y="263" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="329.5" y="96.6" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="352.4" y="196.5" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="316.4" y="200.4" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="319.3" y="237.3" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="410" y="196.1" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="319.8" y="39.9" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="337" y="71.6" class="st1" width="19.1" height="19.1"/>',
+                '<rect x="315.1" y="15.9" class="st2" width="22" height="16.9"/>',
+                '<rect x="343.7" y="39.9" class="st2" width="22" height="16.9"/>',
+                '<rect x="448.3" y="50.1" class="st2" width="22" height="16.9"/>',
+                '<rect x="411.7" y="76.5" class="st2" width="22" height="16.9"/>',
+                '<rect x="449.8" y="159" class="st2" width="22" height="16.9"/>',
+                '<rect x="385.4" y="101.3" class="st2" width="22" height="16.9"/>',
+                '<rect x="321.8" y="124.1" class="st2" width="22" height="16.9"/>',
+                '<rect x="384.9" y="137.9" class="st2" width="16.9" height="22"/>',
+                '<rect x="366.9" y="159.9" class="st2" width="16.9" height="22"/>',
+                '<rect x="376.9" y="202.7" class="st2" width="16.9" height="22"/>',
+                '<rect x="382.7" y="265.6" class="st2" width="16.9" height="22"/>',
+                '<rect x="450.3" y="98.8" class="st2" width="16.9" height="22"/>',
+                '<rect x="370.3" y="77.2" class="st2" width="16.9" height="22"/>',
+                '<rect x="251.2" y="27.3" class="st0" width="24.4" height="14"/>',
+                '<rect x="250.5" y="173.5" class="st0" width="24.4" height="14"/>',
+                '<rect x="207.5" y="173.5" class="st0" width="24.4" height="14"/>',
+                '<rect x="166.6" y="246.9" class="st0" width="24.4" height="14"/>',
+                '<rect x="166.6" y="207.1" class="st0" width="24.4" height="14"/>',
+                '<rect x="166.6" y="99.1" class="st0" width="24.4" height="14"/>',
+                '<rect x="212.6" y="29.3" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="273.1" y="99.3" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="212.6" y="133.3" class="st2" width="19.4" height="19.4"/>',
+                '<rect x="262" y="211.4" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="222.9" y="250.7" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="184.1" y="64.3" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="169.9" y="167.4" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="273.5" y="140.1" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="192.9" y="35.8" class="st1" width="19.4" height="19.4"/>',
+                '<rect x="280.3" y="19.3" class="st2" width="17.2" height="22.4"/>',
+                '<rect x="233.9" y="27.4" class="st2" width="17.2" height="22.4"/>',
+                '<rect x="158.9" y="36" class="st2" width="17.2" height="22.4"/>',
+                '<rect x="277.9" y="63.9" class="st2" width="17.2" height="22.4"/>',
+                '<rect x="199.7" y="100.2" class="st2" width="17.2" height="22.4"/>',
+                '<rect x="293.6" y="168.4" class="st2" width="17.2" height="22.4"/>',
+                '<rect x="167.7" y="16.4" class="st2" width="22.4" height="17.2"/>',
+                '<rect x="242.9" y="140.2" class="st2" width="22.4" height="17.2"/>',
+                '<rect x="305" y="138.5" class="st2" width="16.9" height="22"/>',
+                '<rect x="78.5" y="68.4" class="st0" width="24.6" height="14.1"/>',
+                '<rect x="134.2" y="18.2" class="st0" width="24.6" height="14.1"/>',
+                '<rect x="17.4" y="83.1" class="st0" width="24.6" height="14.1"/>',
+                '<rect x="91.2" y="184.1" class="st0" width="24.6" height="14.1"/>',
+                '<rect x="59.4" y="204.3" class="st0" width="24.6" height="14.1"/>',
+                '<rect x="2.4" y="145.5" class="st0" width="24.6" height="14.1"/>',
+                '<rect x="68.5" y="139.7" class="st0" width="24.6" height="14.1"/>',
+                '<rect x="116.4" y="41.5" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="113.9" y="18" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="92.5" y="27.6" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="56.7" y="42.5" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="71.7" y="115.9" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="139.5" y="166.6" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="63.8" y="184.2" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="46.2" y="247.2" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="11" y="214.4" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="137.9" y="115.9" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="2.5" y="55" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="-0.8" y="88.7" class="st1" width="19.5" height="19.5"/>',
+                '<rect x="142.3" y="54.6" class="st2" width="17.3" height="22.5"/>',
+                '<rect x="45.5" y="19.5" class="st2" width="22.5" height="17.3"/>',
+                '<rect x="3" y="19.7" class="st2" width="10" height="17.3"/>',
+                '<rect x="25" y="68.4" class="st2" width="22.5" height="17.3"/>',
+                '<rect x="142.1" y="267.8" class="st2" width="22.5" height="17.3"/>',
+                '<rect x="121.9" y="92.3" class="st2" width="17.3" height="22.5"/>',
+                '<rect x="22" y="20" class="st2" width="17.3" height="22.5"/>',
+                '<rect x="41.3" y="118.6" class="st2" width="22.5" height="17.3"/>',
+                '<rect x="113.4" y="249.8" class="st2" width="22.5" height="17.3"/>',
+                '<rect x="49.9" y="215.5" class="st2" width="22.5" height="17.3"/>',
+                '<rect x="127.4" y="148.5" class="st2" width="22.5" height="17.3"/>',
+                '<rect x="98.7" y="118" class="st2" width="17.3" height="22.5"/>',
+                '<rect x="43.9" y="165.9" class="st2" width="17.3" height="22.5"/>',
+                '<rect x="123.7" y="205.4" class="st2" width="17.3" height="22.5"/>'
+        ]
+        var whole_height = 278.7676
+        var whole_width = 469.8658
+        var dot_top = 0
+        var dot_left = 0
+        for (var i = db.length - 1; i >= 0; i--) {
+            var x = Math.round(parseFloat(db[i].split('x="')[1].split('" y')[0]))
+            var y = Math.round(parseFloat(db[i].split('y="')[1].split('" cla')[0]))
+            var w = Math.round(parseFloat(db[i].split('width="')[1].split('" height="')[0]))
+            var h = Math.round(parseFloat(db[i].split('height="')[1].split('/>')[0]))
+            var mx = x + w/2
+            var my = y + h/2
+            db[i] = [x,y,w,h,mx,my]
+        }
+
+        $(document).ready(function(){
+            for (var i = db.length - 1; i >= 0; i--) {
+                $('.wrapper').append('<div class="popup popup_'+i+'"><div class="activated_img"></div><div class="activated_let"></div><div class="tab_l"></div><div class="tab_r"></div></div>')
+                $('.wrapper').css({'width' :whole_width+'px'})
+                $('.wrapper').css({'height':whole_height+'px'})
+                $('.wrapper').css({'transform':'rotateZ(-90deg) translateX('+(-2*window.innerHeight)+'px) scale('+window.innerHeight/(whole_width/3)+')'})
+
+                $('.popup_'+i).css({'left':db[i][0]+'px'})
+                $('.popup_'+i).css({'top':db[i][1]+'px'})
+                $('.popup_'+i).css({'width':db[i][2]+'px'})
+                $('.popup_'+i).css({'height':db[i][3]+'px'})
+            }
+            onLoadFinish()
+            function onLoadFinish() {
+                console.log('hey')
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCWU0V3jCGhD5DFB_NFC4cZNBWnE3iYnyA",
+                    authDomain: "zeroone-6e4f4.firebaseapp.com",
+                    projectId: "zeroone-6e4f4",
+                    storageBucket: "zeroone-6e4f4.appspot.com",
+                    messagingSenderId: "765026924219",
+                    databaseURL: 'https://zeroone-6e4f4-default-rtdb.firebaseio.com',
+                    appId: "1:765026924219:web:8a9bfc220907ed2d8fdb9e",
+                    measurementId: "G-F2NSYBMXDN"
+                };
+                firebase.initializeApp(firebaseConfig);
+                firebase.analytics();
+
+                window.setFirebaseValues = function (values) {
+                    firebase.database().ref('values').update(values);
+                };
+
+                firebase.database().ref('values').on('value', function (snapshot) {
+                    if (typeof window.firebaseValueChangeHandler !== 'function') {
+                        return;
+                    }
+                    window.firebaseValueChangeHandler(snapshot.val());
+                }); // ready to go
+
+                if (typeof window.onFirebaseReady === 'function') {
+                    window.onFirebaseReady();
+                } // empty value change queue
+
+
+                window.firebaseSetValuesQueue.forEach(function (values) {
+                    // window.setFirebaseValues(values);
+                });
+                window.firebaseSetValuesQueue = [];
+            }
+
+
+        })
+
+
+
+
+
+function firebaseValueChangeHandler(values) {
+    console.log(values.act_0)
+    console.log(values.act_1)
+    console.log(values.act_2)
+    console.log(values.act_3)
+                        $('.popup').removeClass('activated_1')
+                        $('.popup').removeClass('activated_2')
+                        $('.popup').removeClass('activated_3')
+                        $('.popup').removeClass('activated_4')
+                        $('.popup_'+values.act_0).removeClass('pre_activated_1')
+                        $('.popup_'+values.act_0).removeClass('pre_activated_2')
+                        $('.popup_'+values.act_0).removeClass('pre_activated_3')
+                        $('.popup_'+values.act_0).removeClass('pre_activated_4')
+
+
+                        $('.popup_'+values.act_0).addClass('pre_activated_1')
+                        $('.popup_'+values.act_1).addClass('pre_activated_2')
+                        $('.popup_'+values.act_2).addClass('pre_activated_3')
+                        $('.popup_'+values.act_3).addClass('pre_activated_4')
+                        $('.popup_'+values.act_0).addClass('activated_1')
+                        $('.popup_'+values.act_1).addClass('activated_2')
+                        $('.popup_'+values.act_2).addClass('activated_3')
+                        $('.popup_'+values.act_3).addClass('activated_4')
+}
+
+
+        function get_angle(cx, cy, ex, ey) {
+            var dy = ey - cy;
+            var dx = ex - cx;
+            var theta = Math.atan2(dy, dx); // range (-PI, PI]
+            theta *= 180 / Math.PI; // rads to degs, range (-180, 180]
+            //if (theta < 0) theta = 360 + theta; // range [0, 360)
+            return theta;
+        }
+
+
+            function radians_to_degrees(radians) {
+                return radians * (180 / Math.PI);
+            }
+
+
+
+        function get_dis(x1, x2, y1, y2){
+            var a = x1 - x2;
+            var b = y1 - y2;
+
+            return Math.sqrt( a*a + b*b );
+        }
+    </script>
+</body>
+</html>

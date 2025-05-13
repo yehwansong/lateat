@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="js/jquery-3.7.1.js"></script>
+    <style>
+    	body,html{
+    		margin: 0;
+    		overflow: hidden;
+    		width: 100%;
+    		height:100%
+    	}
+    	#message{
+    		display: none;
+    	}
+        #imageContainer {
+            position: absolute;
+            width: 1050px;
+            height: 1050px;
+            overflow: hidden;
+            opacity: 0.65
+        }
+        #image {
+            position: absolute;
+            width: 1050px;
+            height: 1050px;
+        }
+        .text{
+        	position: absolute;
+        	left: 50%;
+        	top: 50%;
+        	z-index: 1000;
+        	width: 100%;
+        	height: 100%;
+        	background-size: auto 30px;
+        	background-repeat: no-repeat;
+        	background-position: center;
+        }
+    	*{
+    		font-family:sans-serif;
+    	}
+    </style>
+</head>
+<body>
+	<div class="text"></div>
+    <div id="imageContainer">
+        <img id="image" src="img/seq001_resized.png" alt="Image Sequence">
+    </div>
+    <p id="message">Waiting for message...</p>
+
+  <video id="webcam" autoplay playsinline></video>
+
+  <script>
+    // Access the webcam video
+    async function startWebcam() {
+      const videoElement = document.getElementById('webcam');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoElement.srcObject = stream;
+      } catch (error) {
+        console.error('Error accessing webcam: ', error);
+      }
+    }
+
+    // Start the webcam when the page loads
+    window.addEventListener('load', startWebcam);
+  </script>
+    <script>
+    	var position_defined = false
+        window.addEventListener('message', (event) => {
+            const imageElement = document.getElementById('image');
+            	if(!position_defined){
+            		if(isNumber(event.data[0])){
+            			position_defined = true
+		                var [currentFrame, positionX, positionY, sizeX, sizeY,rotation, text] = event.data;
+		                imageElement.style.left = `${positionX}px`;
+		                imageElement.style.top = `${positionY}px`;
+		                console.log(String(text))
+		                $('.text').css({
+		                	'transform':'translate(-50%,-50%) rotate('+rotation+'deg)',
+		                	'width':(sizeX+100)+'px',
+		                	'height':sizeY+'px',
+		                	'background-image':'url(img/text/text-'+String(text).padStart(2,'0')+'.png)'
+		                })
+		                if(rotation==0){
+			                $('.text').css({
+			                	'background-size':'auto '+100*0.25+'px',
+			                	'margin-left':'5px'
+			                })
+		                }else{
+			                $('.text').css({
+			                	'background-size':'auto '+266*0.25+'px'
+			                })
+		                }
+		            }
+                }else{
+            		if(isNumber(event.data[0])){
+	                	var currentFrame = event.data[0];
+	                }
+                }
+
+        //         // Update image sequence
+        //         if(currentFrame){
+        //             const paddedFrame = String(currentFrame).padStart(2, '0'); // Ensure frame number is 3 digits
+        //             imageElement.src = `img/resized/seq_${paddedFrame}.png`;
+
+    				// document.getElementById('message').innerText = paddedFrame
+        //         }
+
+                // Display the received message
+            // } else {
+            //     console.log('Message from unknown origin');
+            // }
+        });
+        function isNumber(value) {
+		    return !isNaN(value) && typeof value === 'number';
+		}
+    </script>
+</body>
+</html>
+

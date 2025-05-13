@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="favicon.ico">
+  <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+  <script type="text/javascript">
+      $(document).ready(function(){
+            $(window).on('resize', function(){
+                if(window.innerHeight>window.innerWidth*0.9/1){
+                    $('body').addClass('long')
+                }else{
+                    $('body').removeClass('long')
+                }
+            });
+      })
+  </script>
+<style type="text/css">
+    html, body{
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+    }
+    .elem{
+        position: absolute;
+        width: 16vw;
+        background-size: 105% 100%;
+        background-position: center;
+
+    }
+    .top{
+        top: 0;
+        height: 50%;
+        transform: scaleY(0);
+        transform-origin: top;
+        background-color:#ff0000;
+    }
+    .bottom{
+        height: 50%;
+        top: 50%;
+        transform: scaleY(2);
+        transform-origin: bottom;
+    }
+    .top_0{
+        left: 00vw;
+        transition: 0.3s 0.0s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .top_1{
+        left: 10vw;
+        background-image: url(text-01.png);
+        transition: 0.3s 0.1s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .top_2{
+        left: 26vw;
+        background-image: url(text-02.png);
+        transition: 0.3s 0.2s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .top_3{
+        left: 42vw;
+        background-image: url(text-03.png);
+        transition: 0.3s 0.3s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .top_4{
+        left: 58vw;
+        background-image: url(text-04.png);
+        transition: 0.3s 0.4s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .top_5{
+        left: 74vw;
+        background-image: url(text-05.png);
+        transition: 0.3s 0.5s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .top_6{
+        left: 90vw;
+        transition: 0.3s 0.6s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .bottom_0{
+        left: 00vw;
+        transition: 0.3s 0.0s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .bottom_1{
+        left: 10vw;
+        background-image: url(text-06.png);
+        transition: 0.3s 0.1s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .bottom_2{
+        left: 26vw;
+        background-image: url(text-07.png);
+        transition: 0.3s 0.2s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .bottom_3{
+        left: 42vw;
+        background-image: url(text-08.png);
+        transition: 0.3s 0.3s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .bottom_4{
+        left: 58vw;
+        background-image: url(text-09.png);
+        transition: 0.3s 0.4s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .bottom_5{
+        left: 74vw;
+        background-image: url(text-10.png);
+        transition: 0.3s 0.5s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .bottom_6{
+        left: 90vw;
+        transition: 0.3s 0.6s cubic-bezier(0,.66,.42,1.28) transform
+    }
+    .long .top{
+        transform: scaleY(1);
+    }
+    .long .bottom{
+        transform: scaleY(1);
+    }
+</style>
+</head>
+
+<body>
+    <div class="top top_0 elem"></div>
+    <div class="top top_1 elem"></div>
+    <div class="top top_2 elem"></div>
+    <div class="top top_3 elem"></div>
+    <div class="top top_4 elem"></div>
+    <div class="top top_5 elem"></div>
+    <div class="top top_6 elem"></div>
+    <div class="bottom bottom_0 elem"></div>
+    <div class="bottom bottom_1 elem"></div>
+    <div class="bottom bottom_2 elem"></div>
+    <div class="bottom bottom_3 elem"></div>
+    <div class="bottom bottom_4 elem"></div>
+    <div class="bottom bottom_5 elem"></div>
+    <div class="bottom bottom_6 elem"></div>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="js/jquery-3.7.1.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    
+    <style>
+    	*{
+    		font-family:sans-serif;
+    	}
+    	body,html{
+    		margin: 0;
+    		overflow: hidden;
+    		width: 100%;
+    		height:100%
+    	}
+    	#message{
+    		display: none;
+    	}
+        #imageContainer {
+            position: absolute;
+            width: 1050px;
+            height: 1050px;
+            overflow: hidden;
+            opacity: 0.65
+        }
+        #image {
+            position: absolute;
+            width: 1050px;
+            height: 1050px;
+        }
+        .text{
+        	position: absolute;
+        	left: 50%;
+        	top: 50%;
+        	z-index: 1000;
+        	width: 100%;
+        	height: 100%;
+        	background-size: auto 30px;
+        	background-repeat: no-repeat;
+        	background-position: center;
+        }
+        .arrow{
+        	background-image: url(img/arrow-13.png);
+        	background-size: contain;
+        	background-position: center;
+        	background-repeat: no-repeat;
+        	width: 100%;
+        	height: 100%;
+        	position: absolute;
+        	left: 0;
+        	top: 0;
+        	z-index: 100
+        }
+        .white{
+        	
+        	width: 100vh;
+        	height: 100vh;
+        	position:absolute;
+        	left: 50%;
+        	transform: translateX(-50%);
+        	top: 0;
+        	z-index: 10;
+        	background-color: white
+        }
+    </style>
+</head>
+<body>
+	<div class="arrow"></div>
+	<div class="white"></div>
+    <div id="imageContainer">
+        <img id="image" src="img/resized_images/seq001.png" alt="Image Sequence">
+    </div>
+    <p id="message">Waiting for message...</p>
+
+    <script>
+        var rot_array = [
+12-90,
+45-90,
+90-12-90,
+90+12-90,
+90+45-90,
+180-12-90,
+180+12-90,
+180+45-90,
+270-12-90,
+270+12-90,
+270+45-90,
+-12-90,]
+    	var position_defined = false
+        var wiggle = 0
+        window.addEventListener('message', (event) => {
+            const imageElement = document.getElementById('image');
+            	if(!position_defined){
+            		if(isNumber(event.data[0])){
+            			position_defined = true
+		                var [currentFrame, positionX, positionY] = event.data;
+		                imageElement.style.left = `${positionX}px`;
+		                imageElement.style.top = `${positionY}px`;
+		            }
+                }else{
+            		if(isNumber(event.data[0])){
+	                	var currentFrame = event.data[0];
+	                }
+                }
+                if(currentFrame%3 == 0){
+                    wiggle = Math.random()*4
+                }
+                        if(event.data.length == 4){
+                            var rotation = event.data[3]
+                            $('.arrow').show()
+                            $('.arrow').css({'transform':'rotate('+(rot_array[rotation]+wiggle)+'deg)', 
+                                // 'translate':'transform 0.5s'
+                        })
+                        }
+
+                // Update image sequence
+                if(currentFrame){
+                    const paddedFrame = String(currentFrame).padStart(3, '0'); // Ensure frame number is 3 digits
+                    imageElement.src = `img/resized_images/seq${paddedFrame}.png`;
+
+    				document.getElementById('message').innerText = paddedFrame
+                }
+
+                // Display the received message
+            // } else {
+            //     console.log('Message from unknown origin');
+            // }
+        });
+
+function detectTabSize() {
+    var screenHeight = window.screen.height;
+    var windowHeight = window.innerHeight;
+    return screenHeight - windowHeight;
+}
+        $(document).ready(function(){
+            sendMessage()
+        })
+                function sendMessage() {
+                  if (window.opener) {
+                    window.opener.postMessage([$('.arrow').outerWidth(),window.outerHeight,detectTabSize()], window.location.origin);
+                  }
+                }
+        function isNumber(value) {
+		    return !isNaN(value) && typeof value === 'number';
+		}
+    </script>
+</body>
+</html>
+

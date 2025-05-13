@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <!-- <script src="js/face_mesh.js"></script>
+    <script src="js/drawing_utils.js"></script>
+    <script src="js/control_utils.js"></script> -->
+    <style type="text/css">
+        * {
+            margin: 0;
+        }
+        img {
+            width: 1050px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .grid{
+            position: absolute;
+            width: 1050px;
+            left: 0;
+            top: 0;
+            z-index: 100
+        }
+        canvas{
+            /*transform: scale(0.8);*/
+        }
+    </style>
+</head>
+<body>
+    <img src=img/grid-14.png class="grid">
+    <canvas id="outputCanvas"></canvas>
+    <button id="pauseBtn">Pause</button>
+    <button id="closeBtn">Close</button>
+    <button id="resumeBtn" style="display: none;">Resume</button>
+    <script>
+        var intersectX, intersectY
+        var instatant_popups=[]
+        var arrow_pos_array = [
+
+            [430, 715],//Bottom
+
+            [310, 645],//Left Bottom
+
+            [240, 525],//Left
+            [240, 430],//Left
+
+            [310, 310],//Left top
+
+            [430, 240],// Top
+            [525, 240],//Top
+
+            [645, 310],//Right Top
+
+            [715, 430],//Right
+            [715, 525],//Right
+
+            [645, 645],//Right Bottom
+            [525, 715],//Bottom
+        ]
+        var angle_array = [ 0, -45, 0, 45, 0, -45, 0, 45, 0 ];
+        var size_array = [
+            [0.25*(498+10),98*0.25],
+            [0.25*819.5367593952087,819.5367593952086*0.25],
+            [0.25*(729+10),100*0.25],
+            [0.25*879.6408357960652,879.6408357960651*0.25],
+            [0.25*(889+10),100*0.25],
+            [0.25*886.004796826744,886.004796826744*0.25],
+            [0.25*(642+10),100*0.25],
+            [0.25*925.6027765731908,925.6027765731907*0.25],
+            [0.25*(498+10),98*0.25],
+        ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        var pos_array = [
+            [525-size_array[0][0]/2, (1050-(715+100))/2+(715+100)-size_array[0][1]/2-7.25],//Bottom
+            [310-size_array[1][0], 645+100+29+29],//Left Bottom
+            [120-size_array[2][0]/2+7.25+5+5+5,525-size_array[2][1]/2+29],//Left
+            [310-size_array[3][0],120-size_array[4][1]/2+3.625+1.75],//Left top
+            [525-size_array[4][0]/2,120-size_array[4][1]/2+3.625+1.75],// Top
+            [645+100,120-size_array[4][1]/2+3.625+1.75],//Right Top
+            [(1050-(715+100))/2+(715+100)-size_array[6][0]/2-7.25-5,525-size_array[6][1]/2+29],//Right
+            [645+100,645+100+29+29],//Right Bottom
+        ];
+
+        var popup_array = []
+        const canvasElement = document.getElementById('outputCanvas');
+        canvasElement.width = 1050;  // Set canvas width to 900
+        canvasElement.height = 1050; // Set canvas height to 900
+        const canvasCtx = canvasElement.getContext('2d');
+        const circleX = canvasElement.width / 2;
+        const circleY = canvasElement.width / 2;
+        const radius = 350;
+
+        var init_popups = []
+        var instatant_popups = []
+
+        var bugon = false
+        function divideIntoThreeParts(total, min, max) {
+            const firstPart = min;
+            const secondPart = min;
+            const thirdPart = total - firstPart - secondPart;
+
+            if (thirdPart >= min && thirdPart <= max) {
+                return [firstPart, secondPart, thirdPart];
+            } else {
+                return null; 1
+
+
+
+                // If it's not possible to divide within the constraints
+            }
+        }
+        async function fetchImage(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.src = url;
+                img.width = 900;  // Set image width to 900
+                img.height = 900; // Set image height to 900
+            });
+        }
+
+        async function loadImages() {
+            const images = [];
+            for (let i = 0; i < 250; i++) {  // Adjust number of frames as needed
+                const paddedIndex = String(i).padStart(2, '0');
+                const img = await fetchImage(`img/seq_${paddedIndex}.png`);
+                images.push(img);
+            }
+            return images;
+        }
+
+        async function main() {
+            const images = await loadImages();
+            let currentFrame = 0;
+            const fps = 70;
+            let interval = 1000 / fps;
+            let isPaused = false;
+            var innerFrame = 0
+            async function processFrame() {
+                var a, b
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.drawImage(images[currentFrame], 0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.beginPath();
+                canvasCtx.fill();
+                if (isPaused) return;
+                if (currentFrame >= images.length - 1){ 
+                    currentFrame = 0;
+                        for (let i = popup_array.length - 1; i >= 0; i--) {
+                            popup_array[i].close();
+                        }
+                        for (let i = init_popups.length - 1; i >= 0; i--) {
+                            init_popups[i].close();
+                        }
+                        init_popups = [];
+                        popup_array = [];
+
+                }
+                const image = images[currentFrame];
+                var frames = [1,32,63,92,123,149,184,214]
+                var frames_after = [1+2,32+2,63+2,92+2,123+2,149+2,184+2,214+2]
+                var frames_rot = [9,33,57,72,94,116,129,146,168, 189,212,238]
+                    currentFrame++;
+                    console.log(frames.includes(currentFrame))
+                // await faceMesh.send({ image });
+                    if(currentFrame == 1){
+                        if(init_popups.length == 0){
+                            for (var i = 0; i <12; i++) {
+                            }
+                        }
+                }
+                if (frames_rot.includes(currentFrame)) {
+                                init_popups.push(window.open("arrow.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0"))
+                                init_popups[init_popups.length-1].moveTo(arrow_pos_array[init_popups.length-1][0],arrow_pos_array[init_popups.length-1][1]+66)
+                }
+                if (frames.includes(currentFrame)) {
+                        a = Math.floor(size_array[popup_array.length][0]);
+                        b = Math.floor(size_array[popup_array.length][1]) + 29; 
+                        var pre_a = Math.random()*300+100
+                        var pre_b = Math.random()*300+100 
+                        intersectX = a
+                        intersectY = b 
+                        popup_array.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                        popup_array[popup_array.length - 1].resizeTo(a , b)
+                        // if(Math.random()>0.5){
+                                                    var pre_a = Math.random()*300+100
+                                                    var pre_b = Math.random()*300+100
+                                                    if(Math.round(Math.random())==0){
+                                                        var random_1 = -1*pre_a
+                                                    }else{
+                                                        var random_1 = a
+                                                    }
+                                                    if(Math.round(Math.random())==0){
+                                                        var random_2 = -1*pre_b
+                                                    }else{
+                                                        var random_2 = b
+                                                    }
+                            instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            instatant_popups[instatant_popups.length-1].moveTo(intersectX+random_1,intersectY+random_2)
+                                                // }else{
+                            var pre_a = Math.random()*300+500
+                            var pre_b = 100
+                            if(Math.round(Math.random())==0){
+                                var random_1 = canvasElement.width-pre_a
+                            }else{
+                                var random_1 = 0
+                            }
+                            if(Math.round(Math.random())==0){
+                                var random_2 = -100
+                            }else{
+                                var random_2 = b
+                            }
+                            console.log(intersectX)
+                            instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            instatant_popups[instatant_popups.length-1].moveTo(random_1,intersectY+random_2)
+
+                                                // }
+                            // var pre_a = Math.random()*300+500
+                            // var pre_b = 100
+                            // if(Math.round(Math.random())==0){
+                            //     var random_1 = canvasElement.width-pre_a
+                            // }else{
+                            //     var random_1 = 0
+                            // }
+                            // if(Math.round(Math.random())==0){
+                            //     var random_2 = -100
+                            // }else{
+                            //     var random_2 = b
+                            // }
+                            // console.log(intersectX)
+                            // instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            // instatant_popups[instatant_popups.length-1].moveTo(random_1,intersectY+random_2)
+                            // var pre_a =  100
+                            // var pre_b = Math.random()*300+500
+                            // if(Math.round(Math.random())==0){
+                            //     var random_1 = -1*pre_a
+                            // }else{
+                            //     var random_1 = a
+                            // }
+                            // if(Math.round(Math.random())==0){
+                            //     var random_2 = canvasElement.width-pre_b
+                            // }else{
+                            //     var random_2 = 0
+                            // }
+                            // instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            // instatant_popups[instatant_popups.length-1].moveTo(intersectX+random_1,random_2)
+                    }
+                if (frames_after.includes(currentFrame)) {
+                        popup_array[popup_array.length - 1].moveTo(pos_array[popup_array.length - 1][0],pos_array[popup_array.length - 1][1]);
+                            for (var i = instatant_popups.length - 1; i >= 0; i--) {
+                                instatant_popups[i].close()
+                            }
+                            instatant_popups = []
+                }
+                    interval = 1000 / fps;
+
+                for (let i = popup_array.length - 1; i >= 0; i--) {
+                    const array = [currentFrame, -1*pos_array[i][0], -1*pos_array[i][1]+29, size_array[i][0], size_array[i][1], angle_array[i], i + 16];
+                    popup_array[i].postMessage(array, '*');
+                }
+                var rotating =  Math.floor((currentFrame)/20)
+                for (let i = init_popups.length - 1; i >= 0; i--) {
+                    if(i == rotating){
+                        console.log(rotating)
+                    var init_array = [currentFrame, -1*arrow_pos_array[i][0], -1*arrow_pos_array[i][1],i];
+                    }else{
+                    var init_array = [currentFrame, -1*arrow_pos_array[i][0], -1*arrow_pos_array[i][1]];
+                    }
+                    init_popups[i].postMessage(init_array, '*');
+                }
+
+                setTimeout(processFrame, interval);
+            }
+
+            document.getElementById('pauseBtn').addEventListener('click', function() {
+                isPaused = true;
+                document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('resumeBtn').style.display = 'inline';
+            });
+
+            document.getElementById('closeBtn').addEventListener('click', function() {
+                    for (let i = popup_array.length - 1; i >= 0; i--) {
+                        popup_array[i].close();
+                    }
+                    for (let i = init_popups.length - 1; i >= 0; i--) {
+                        init_popups[i].close();
+                    }
+                            for (var i = instatant_popups.length - 1; i >= 0; i--) {
+                                instatant_popups[i].close()
+                            }
+            });
+
+            document.getElementById('resumeBtn').addEventListener('click', function() {
+                isPaused = false;
+                document.getElementById('pauseBtn').style.display = 'inline';
+                document.getElementById('resumeBtn').style.display = 'none';
+                processFrame(); // Resume the process
+            });
+
+            processFrame();
+        }
+
+
+
+        main();
+    </script>
+</body>
+</html>

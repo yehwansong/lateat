@@ -1,0 +1,185 @@
+html{
+    overflow-y: hidden !important
+}
+    img, video {
+    height: 720px;
+    width: 960px;
+    display: none;
+}
+canvas{
+    height: 100vh;
+}
+        *{
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            box-sizing: border-box;
+        }
+        body{
+            /*background:black;*/
+            overflow: hidden;
+        }
+        div{
+            background-image: url(grid.png);
+            background-size: auto 100%;
+        }
+        .wrapper{
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            left: 0;
+            top: 0;
+            /*background-color: black;*/
+            transform-origin: left top
+        }
+      .dot{
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        background-color: red;
+
+        z-index: 10000
+      }
+      .columns, .container{
+      	opacity: 0 !important;
+      	pointer-events: none !important;
+      }
+        .popup{
+        	/*filter:blur(1px);*/
+            position: absolute;
+            background-color: white;
+            background-repeat: no-repeat !important;
+            background-size: auto 100% !important;
+            background-position: center !important;
+            filter: 
+        }
+        .tab_ml{
+            height: 11.44px;
+            position: absolute;
+            left: 0;
+            top: 0
+        }
+        .tab_mr{
+            height: 11.44px;
+            position: absolute;
+            left: 0;
+            top: 0
+        }
+        .tab_l{
+            height: 3px;
+            width: 50%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background-size: auto 100%;
+            background-position: left;
+            background-image: url(img/tab-01.png)
+        }
+        .tab_r{
+            height: 3px;
+            width: 50%;
+            position: absolute;
+            right: 0;
+            top: 0;
+            background-size: auto 100%;
+            background-position: right;
+            background-image: url(img/tab-02.png)
+        }
+        .popup_0 .tab_l{
+            height: 100%;
+            width: 50%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background-size: auto 100%;
+            background-position: left;
+            background-image: url(img/tab_1.png);
+            background-repeat: no-repeat;
+        }
+        .popup_0 .tab_r{
+            height: 100%;
+            width: 50%;
+            position: absolute;
+            right: 0;
+            top: 0;
+            background-size: auto 100%;
+            background-position: right;
+            background-image: url(img/tab_3.png);
+            background-repeat: no-repeat;
+        }
+        .popup_0 {
+            background-size: auto 100%;
+            background-position: center;
+            background-image: url(img/tab_2.png);
+            background-repeat: no-repeat;
+        }
+        .popuptype_1{
+            width:21px;
+            height:21px;
+        }
+        .popuptype_2{
+            width:24px;
+            margin-left:-1.5px;
+            height:18px;
+            
+        }
+        .popuptype_3{
+            width:18px;
+            margin-left:2px;
+            height:24px;
+            
+
+        }
+        .popuptype_4{
+            width:27px;
+            margin-left:-3px;
+            height:15px;
+        }
+        .modal-content{
+            /*display: none*/
+        }
+        .pre_activated_1{
+            background: red;
+            
+        }
+        .pre_activated_2{
+            background: #0054dc;
+            
+        }
+        .pre_activated_3{
+            background: white;
+            
+        }
+        .pre_activated_4{
+            background: linear-gradient(45deg, red, #ffa700);
+            
+        }
+        .activated_1 .activated_img{
+            background: url('img/letter-01.png');
+            background-repeat: no-repeat !important;
+            background-size: auto 100% !important;
+            background-position: center !important;
+            
+        }
+        .activated_2 .activated_img{
+            background: url('img/letter-02.png');
+            background-repeat: no-repeat !important;
+            background-size: auto 100% !important;
+            background-position: center !important;
+            
+        }
+        .activated_3 .activated_img{
+            background: url('img/letter-03.png');
+            background-repeat: no-repeat !important;
+            background-size: auto 100% !important;
+            background-position: center !important;
+            
+        }
+        .activated_4 .activated_img{
+            background: url('img/letter-04.png');
+            background-repeat: no-repeat !important;
+            background-size: auto 100% !important;
+            background-position: center !important;
+            
+        }

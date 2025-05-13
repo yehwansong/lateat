@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.css" crossorigin="anonymous">
+  <link rel="stylesheet" type="text/css" href="demo.css" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.1/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/holistic.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+  <style type="text/css">
+    img, video {
+    height: 720px;
+    width: 960px;
+    display: none;
+}
+canvas{
+    height: 100vh;
+}
+.dot_wrap{
+    position: absolute;
+}
+
+      .dot{
+        position: absolute;
+        width: 10px;
+        height: 10px;
+
+        z-index: 10000
+      }
+      .popup{
+        position: fixed;
+        background-color: blue;
+        overflow: scroll;
+      }
+      .animate{
+        transition: 1s ease-out
+      }
+  </style>
+</head>
+
+<body>
+
+
+  <!-- CONTENTS -->
+  <div class="container">
+
+    <div class="columns">
+      
+      <!-- WEBCAM INPUT -->
+            <video class="input_video4"></video>
+
+            <canvas class="output4" width="960px" height="720px"></canvas>
+    </div>
+    
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  <div style="visibility: hidden" class="control4">
+  </div>
+</div>
+
+    <div class="dot_wrap">
+        <div class="dot dot_1"></div>
+        <div class="dot dot_2"></div>
+        <div class="dot dot_3"></div>
+        <div class="dot dot_4"></div>
+    <div class='dot dot_leftfinger_1'></div>
+    <div class='dot dot_rightfinger_1'></div>
+    <div class='dot dot_leftfinger_2'></div>
+    <div class='dot dot_rightfinger_2'></div>
+    <div class='dot dot_center'></div>
+    </div>
+    <div class="popup"></div>
+
+    <script type="text/javascript">
+
+
+        const video4 = document.getElementsByClassName('input_video4')[0];
+        const out4 = document.getElementsByClassName('output4')[0];
+        const controlsElement4 = document.getElementsByClassName('control4')[0];
+        const canvasCtx4 = out4.getContext('2d');
+        var c_width =$('.output4').outerWidth()
+        var c_height =$('.output4').outerHeight()
+        var popup
+
+
+         var popup_l = 0
+         var popup_t = 0
+         var popup_w = 0
+         var popup_h = 0
+         var center_x, center_y;
+         var popup_shrink = false
+         var popup_open = false
+         var init = false
+
+        $(document).ready(function(){ 
+            popup = window.open("popup_2.html", "", "scrollbar")
+            $('.dot_wrap').css({'width':c_width+'px'})
+            $('.dot_wrap').css({'height':c_height+'px'})
+            $('.dot_wrap').css({'left':$('.output4').offset().left+'px'})
+            $('.dot_wrap').css({'top':$('.output4').offset().top+'px'})
+        })
+        const fpsControl = new FPS();
+        const spinner = document.querySelector('.loading');
+        spinner.ontransitionend = () => {
+          spinner.style.display = 'none';
+        };
+
+        function removeElements(landmarks, elements) {
+          for (const element of elements) {
+            delete landmarks[element];
+          }
+        }
+
+        function removeLandmarks(results) {
+          if (results.poseLandmarks) {
+            removeElements(
+                results.poseLandmarks,
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 19, 20, 21, 22]);
+          }
+        }
+
+        function connect(ctx, connectors) {
+          const canvas = ctx.canvas;
+          for (const connector of connectors) {
+            const from = connector[0];
+            const to = connector[1];
+            if (from && to) {
+              if (from.visibility && to.visibility &&
+                  (from.visibility < 0.1 || to.visibility < 0.1)) {
+                continue;
+              }
+              ctx.beginPath();
+              ctx.moveTo(from.x * canvas.width, from.y * canvas.height);
+              ctx.lineTo(to.x * canvas.width, to.y * canvas.height);
+              ctx.stroke();
+            }
+          }
+        }
+
+
+        function onResultsHolistic(results) {
+        if (results.faceLandmarks) {
+                $('.dot_1').css({'left':(results.faceLandmarks[13].x*c_width)+'px'})
+                $('.dot_1').css({'top':(results.faceLandmarks[13].y* c_height)+'px'})
+                $('.dot_2').css({'left':(results.faceLandmarks[14].x*c_width)+'px'})
+                $('.dot_2').css({'top':(results.faceLandmarks[14].y* c_height)+'px'})
+                $('.dot_3').css({'left':(results.faceLandmarks[61].x*c_width)+'px'})
+                $('.dot_3').css({'top':(results.faceLandmarks[61].y* c_height)+'px'})
+                $('.dot_4').css({'left':(results.faceLandmarks[291].x*c_width)+'px'})
+                $('.dot_4').css({'top':(results.faceLandmarks[291].y* c_height)+'px'})
+                center_x = ((results.faceLandmarks[13].x*c_width)+ (results.faceLandmarks[14].x*c_width)+ (results.faceLandmarks[61].x*c_width)+ (results.faceLandmarks[291].x*c_width))/4
+                center_y = (results.faceLandmarks[13].y* c_height+results.faceLandmarks[14].y* c_height+results.faceLandmarks[61].y* c_height+results.faceLandmarks[291].y* c_height)/4
+                $('.dot_center').css({'left':((results.faceLandmarks[13].x*c_width)+ (results.faceLandmarks[14].x*c_width)+ (results.faceLandmarks[61].x*c_width)+ (results.faceLandmarks[291].x*c_width))/4+'px'})
+                $('.dot_center').css({'top':(results.faceLandmarks[13].y* c_height+results.faceLandmarks[14].y* c_height+results.faceLandmarks[61].y* c_height+results.faceLandmarks[291].y* c_height)/4+'px'})
+
+
+                popup_l = $('.dot_3').offset().left + ($('.dot_4').offset().left - $('.dot_3').offset().left)*0.12 
+                popup_t = $('.dot_1').offset().top-Math.abs($('.container').outerHeight()-$('.dot_wrap').outerHeight())/2 -Math.abs($('.dot_1').offset().top - $('.dot_2').offset().top)*0.35
+                popup_w = ($('.dot_4').offset().left - $('.dot_3').offset().left)*0.8
+                popup_h = Math.abs($('.dot_1').offset().top - $('.dot_2').offset().top)*2
+                if(popup_h*1.2<popup_w){
+                    Math.abs($('.dot_1').offset().top - $('.dot_2').offset().top)*1
+                popup_t = $('.dot_1').offset().top-Math.abs($('.container').outerHeight()-$('.dot_wrap').outerHeight())/2 -Math.abs($('.dot_1').offset().top - $('.dot_2').offset().top)*0
+                }
+                console.log($('.dot_wrap').offset().left)
+              console.log('hey0')
+                                    movewindow()
+            if(!init){
+            init = true
+                            var val = 1000/Math.floor((get_dis(results.faceLandmarks[2].x, results.faceLandmarks[252].x, results.faceLandmarks[2].y, results.faceLandmarks[252].y))*1000) / 3
+                            $('.output4').css({'transform':'scale(' +val+')'})
+                            // $('.output4').css({'transform-origin':(results.faceLandmarks[2].x*100)+'% '+((results.faceLandmarks[17].y+(results.faceLandmarks[13].y-results.faceLandmarks[164].y)/2)*100) + '%'})
+                            $('.dot_wrap').css({'transform':'scale(' +val+')'})
+                            // $('.dot_wrap').css({'transform-origin':(results.faceLandmarks[2].x*100)+'% '+((results.faceLandmarks[17].y+(results.faceLandmarks[13].y-results.faceLandmarks[164].y)/2)*100) + '%'})
+                        }
+            document.body.classList.add('loaded');
+            removeLandmarks(results);
+            fpsControl.tick();
+            canvasCtx4.save();
+            canvasCtx4.clearRect(0, 0, out4.width, out4.height);
+            canvasCtx4.drawImage(
+            results.image, 0, 0, out4.width, out4.height);
+        }
+      }
+        var tabsize = window.screen.height - window.innerHeight
+            function shrink_window(){
+                    if(popup_open){
+                        popup_shrink = true
+                        $('.popup').addClass('animate')
+                        $('.popup').css({'height':'0px'})
+                        popup_l = 0
+                        popup_t = 0
+                        popup_w = 0
+                        popup_h = 0
+                        setTimeout(function(){ 
+                            popup_shrink = false
+                            popup_open = false
+                        $('.popup').removeClass('animate')
+                         },1000)
+                    }
+            }
+            function movewindow(){
+                popup.moveTo(popup_l, popup_t-tabsize)
+                popup.resizeTo(popup_w,  popup_h)
+            }
+
+
+
+
+        const holistic = new Holistic({locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/${file}`;
+        }});
+        holistic.onResults(onResultsHolistic);
+
+        const camera = new Camera(video4, {
+          onFrame: async () => {
+            await holistic.send({image: video4});
+          },
+          width: $('video').outerWidth(),
+          height: $('video').outerHeight()
+        });
+
+        camera.start();
+
+
+
+
+
+
+
+
+
+        new ControlPanel(controlsElement4, {
+              selfieMode: true,
+              upperBodyOnly: true,
+              smoothLandmarks: true,
+              minDetectionConfidence: 0.5,
+              minTrackingConfidence: 0.5
+            })
+            .add([
+              new StaticText({title: 'MediaPipe Holistic'}),
+              fpsControl,
+              new Toggle({title: 'Selfie Mode', field: 'selfieMode'}),
+              new Toggle({title: 'Upper-body Only', field: 'upperBodyOnly'}),
+              new Toggle(
+                  {title: 'Smooth Landmarks', field: 'smoothLandmarks'}),
+              new Slider({
+                title: 'Min Detection Confidence',
+                field: 'minDetectionConfidence',
+                range: [0, 1],
+                step: 0.01
+              }),
+              new Slider({
+                title: 'Min Tracking Confidence',
+                field: 'minTrackingConfidence',
+                range: [0, 1],
+                step: 0.01
+              }),
+            ])
+            .on(options => {
+              video4.classList.toggle('selfie', options.selfieMode);
+              holistic.setOptions(options);
+            });
+
+        function get_dis(x1, x2, y1, y2){
+            var a = x1 - x2;
+            var b = y1 - y2;
+
+            return Math.sqrt( a*a + b*b );
+        }
+    </script>
+</body>
+</html>

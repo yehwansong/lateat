@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Rotation</title>
+  <style>
+    .rotated-image {
+      display: inline-block;
+      transform-origin: top left;
+    }
+  </style>
+</head>
+<body>
+  <div id="image-container"></div>
+
+  <script>
+    function getBoundingBox(angle, width, height) {
+      const radians = angle * Math.PI / 180;
+
+      const cos = Math.cos(radians);
+      const sin = Math.sin(radians);
+
+      const boundingWidth = Math.abs(width * cos) + Math.abs(height * sin);
+      const boundingHeight = Math.abs(width * sin) + Math.abs(height * cos);
+
+      return { width: boundingWidth, height: boundingHeight };
+    }
+
+    window.onload = () => {
+      const container = document.getElementById('image-container');
+      const angle_array = [
+        0,
+        -45,
+        0,
+        45,
+        0,
+        -45,
+        0,
+        45,
+        0,
+      ];
+
+      const imagePaths = [];
+      for (let i = 16; i <= 24; i++) {
+        imagePaths.push(`img/text/text-${String(i).padStart(2, '0')}.png`);
+      }
+      console.log(imagePaths)
+
+      imagePaths.forEach((path, index) => {
+        const img = document.createElement('img');
+        img.src = path;
+        img.classList.add('rotated-image');
+        const angle = angle_array[index];
+        img.style.transform = `rotate(${angle}deg)`;
+        img.onload = () => {
+          const bbox = getBoundingBox(angle, img.naturalWidth, img.naturalHeight);
+          console.log(`[${path},${bbox.width},${bbox.height}]`);
+        };
+        container.appendChild(img);
+      });
+    };
+
+// Bounding box for img/text/text-16.png (angle 0°): width=498, height=98
+// Bounding box for img/text/text-17.png (angle -4): width=819.5367593952087, height=819.5367593952086
+// Bounding box for img/text/text-18.png (angle 0°): width=729, height=100
+// Bounding box for img/text/text-20.png (angle 4 ): width=879.6408357960652, height=879.6408357960651
+// Bounding box for img/text/text-21.png (angle 0°): width=1283, height=265
+// Bounding box for img/text/text-22.png (angle -4): width=524.6732316404183, height=524.6732316404182
+// Bounding box for img/text/text-23.png (angle 0°): width=1044, height=265
+// Bounding box for img/text/text-24.png (angle 4 ): width=421.4356415871823, height=421.43564158718226
+  </script>
+</body>
+</html>

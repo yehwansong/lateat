@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.css" crossorigin="anonymous">
+  <link rel="stylesheet" type="text/css" href="demo.css" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.1/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/holistic.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="gaze.css">
+</head>
+
+<body>
+
+
+  <!-- CONTENTS -->
+  <div class="container">
+
+    <div class="columns">
+      
+      <!-- WEBCAM INPUT -->
+            <video class="input_video4"></video>
+
+            <canvas class="output4" width="960px" height="720px"></canvas>
+    </div>
+    
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  <div style="visibility: hidden" class="control4">
+  </div>
+</div>
+    <div class="wrapper">
+        <div class='dot'></div>
+    </div>
+
+    <script type="text/javascript">
+
+
+        const video4 = document.getElementsByClassName('input_video4')[0];
+        const out4 = document.getElementsByClassName('output4')[0];
+        const controlsElement4 = document.getElementsByClassName('control4')[0];
+        const canvasCtx4 = out4.getContext('2d');
+        var c_width =$('.output4').outerWidth()
+        var c_height =$('.output4').outerHeight()
+
+        var counter = 0
+         var popup_l = 0
+         var popup_t = 0
+         var popup_w = 0
+         var popup_h = 0
+         var center_x, center_y;
+         var activated = false
+         var act_num = 0
+
+         var lr_angle, td_angle;
+
+        const db = [
+                '<rect x="2.5" y="2.5" class="st0" width="466.4" height="9"/>',
+                '<rect x="400.8" y="78.9" class="st1" width="21" height="12"/>',
+                '<rect x="343.9" y="74" class="st1" width="21" height="12"/>',
+                '<rect x="253.9" y="24" class="st1" width="21" height="12"/>',
+                '<rect x="141.8" y="16.7" class="st1" width="21" height="12"/>',
+                '<rect x="222.4" y="129.2" class="st1" width="21" height="12"/>',
+                '<rect x="254.9" y="129.2" class="st1" width="21" height="12"/>',
+                '<rect x="191.1" y="76.2" class="st1" width="21" height="12"/>',
+                '<rect x="23.4" y="16.4" class="st1" width="21" height="12"/>',
+                '<rect x="37" y="116.5" class="st1" width="21" height="12"/>',
+                '<rect x="19.6" y="158.9" class="st1" width="21" height="12"/>',
+                '<rect x="96.4" y="56.1" class="st1" width="21" height="12"/>',
+                '<rect x="177" y="156.3" class="st1" width="21" height="12"/>',
+                '<rect x="368.4" y="136.7" class="st1" width="21" height="12"/>',
+                '<rect x="426.4" y="146.4" class="st1" width="21" height="12"/>',
+                '<rect x="423.9" y="166.4" class="st1" width="21" height="12"/>',
+                '<rect x="380.3" y="179.1" class="st1" width="21" height="12"/>',
+                '<rect x="343.9" y="188.5" class="st1" width="21" height="12"/>',
+                '<rect x="388.2" y="123.1" class="st1" width="21" height="12"/>',
+                '<rect x="447.9" y="74" class="st1" width="21" height="12"/>',
+                '<rect x="449.2" y="16.5" class="st2" width="17" height="17"/>',
+                '<rect x="410.2" y="23.9" class="st2" width="17" height="17"/>',
+                '<rect x="219.6" y="24.1" class="st2" width="17" height="17"/>',
+                '<rect x="268.5" y="76.2" class="st2" width="17" height="17"/>',
+                '<rect x="222" y="99.3" class="st3" width="17" height="17"/>',
+                '<rect x="291.4" y="156.3" class="st2" width="17" height="17"/>',
+                '<rect x="271.6" y="156.3" class="st2" width="17" height="17"/>',
+                '<rect x="271.6" y="189" class="st2" width="17" height="17"/>',
+                '<rect x="245.4" y="189" class="st2" width="17" height="17"/>',
+                '<rect x="227.2" y="211.4" class="st2" width="17" height="17"/>',
+                '<rect x="197.3" y="211.4" class="st2" width="17" height="17"/>',
+                '<rect x="175.7" y="99.3" class="st2" width="17" height="17"/>',
+                '<rect x="193.2" y="124" class="st2" width="17" height="17"/>',
+                '<rect x="146.1" y="93.7" class="st2" width="17" height="17"/>',
+                '<rect x="271.6" y="104" class="st2" width="17" height="17"/>',
+                '<rect x="146.2" y="28.9" class="st2" width="17" height="17"/>',
+                '<rect x="127.1" y="36.3" class="st2" width="17" height="17"/>',
+                '<rect x="124.9" y="16.7" class="st2" width="17" height="17"/>',
+                '<rect x="107.6" y="23.8" class="st2" width="17" height="17"/>',
+                '<rect x="93.7" y="93.2" class="st2" width="17" height="17"/>',
+                '<rect x="10.9" y="128.9" class="st2" width="17" height="17"/>',
+                '<rect x="40.1" y="169" class="st2" width="17" height="17"/>',
+                '<rect x="17.6" y="196.7" class="st2" width="17" height="17"/>',
+                '<rect x="81.1" y="196.5" class="st2" width="17" height="17"/>',
+                '<rect x="29.1" y="44" class="st2" width="17" height="17"/>',
+                '<rect x="200.1" y="28.9" class="st2" width="17" height="17"/>',
+                '<rect x="370.6" y="23.9" class="st2" width="17" height="17"/>',
+                '<rect x="378" y="38.8" class="st2" width="17" height="17"/>',
+                '<rect x="388.4" y="98.8" class="st2" width="17" height="17"/>',
+                '<rect x="449.8" y="146.4" class="st2" width="17" height="17"/>',
+                '<rect x="396.4" y="153.8" class="st2" width="17" height="17"/>',
+                '<rect x="344.4" y="153.8" class="st2" width="17" height="17"/>',
+                '<rect x="318.6" y="159.2" class="st2" width="17" height="17"/>',
+                '<rect x="318.6" y="189.7" class="st2" width="17" height="17"/>',
+                '<rect x="415.1" y="188.5" class="st2" width="17" height="17"/>',
+                '<rect x="415.1" y="216.5" class="st2" width="17" height="17"/>',
+                '<rect x="316.1" y="217" class="st2" width="17" height="17"/>',
+                '<rect x="318.6" y="123.7" class="st2" width="17" height="17"/>',
+                '<rect x="449.2" y="98.8" class="st2" width="17" height="17"/>',
+                '<rect x="417.5" y="106.6" class="st2" width="17" height="17"/>',
+                '<rect x="331" y="59.2" class="st2" width="17" height="17"/>',
+                '<rect x="328.1" y="78.9" class="st2" width="17" height="17"/>',
+                '<rect x="321.1" y="31.3" class="st2" width="17" height="17"/>',
+                '<rect x="424.8" y="39" class="st3" width="19.5" height="15"/>',
+                '<rect x="340.8" y="31.3" class="st3" width="19.5" height="15"/>',
+                '<rect x="311.3" y="16.5" class="st3" width="19.5" height="15"/>',
+                '<rect x="390.3" y="59" class="st3" width="19.5" height="15"/>',
+                '<rect x="372.8" y="74" class="st3" width="19.5" height="15"/>',
+                '<rect x="417.3" y="123.3" class="st3" width="19.5" height="15"/>',
+                '<rect x="452" y="234.2" class="st3" width="19.5" height="15"/>',
+                '<rect x="323.3" y="99" class="st3" width="19.5" height="15"/>',
+                '<rect x="424.2" y="73.9" class="st3" width="15" height="19.5"/>',
+                '<rect x="357.7" y="59.1" class="st3" width="15" height="19.5"/>',
+                '<rect x="273.4" y="16.7" class="st3" width="15" height="19.5"/>',
+                '<rect x="238.9" y="24.1" class="st3" width="15" height="19.5"/>',
+                '<rect x="171.4" y="28.8" class="st3" width="15" height="19.5"/>',
+                '<rect x="73.3" y="16.3" class="st3" width="19.5" height="15"/>',
+                '<rect x="2.8" y="16.4" class="st3" width="19.5" height="15"/>',
+                '<rect x="9.6" y="74" class="st3" width="19.5" height="15"/>',
+                '<rect x="4" y="144.3" class="st3" width="19.5" height="15"/>',
+                '<rect x="125.3" y="196.5" class="st3" width="19.5" height="15"/>',
+                '<rect x="175.3" y="124.3" class="st3" width="15" height="19.5"/>',
+                '<rect x="273.6" y="48.8" class="st3" width="15" height="19.5"/>',
+                '<rect x="147.6" y="48.6" class="st3" width="15" height="19.5"/>',
+                '<rect x="53.2" y="16.3" class="st3" width="15" height="19.5"/>',
+                '<rect x="11.9" y="94.1" class="st3" width="15" height="19.5"/>',
+                '<rect x="26.5" y="144.2" class="st3" width="15" height="19.5"/>',
+                '<rect x="130" y="221.7" class="st3" width="15" height="19.5"/>',
+                '<rect x="19" y="221.7" class="st3" width="15" height="19.5"/>',
+                '<rect x="132.4" y="73.6" class="st3" width="15" height="19.5"/>',
+                '<rect x="186.4" y="16.4" class="st3" width="19.5" height="15"/>',
+                '<rect x="143.1" y="116.6" class="st3" width="19.5" height="15"/>',
+                '<rect x="242.7" y="59" class="st3" width="19.5" height="15"/>',
+                '<rect x="219.4" y="59" class="st3" width="19.5" height="15"/>',
+                '<rect x="242.2" y="104" class="st3" width="19.5" height="15"/>',
+                '<rect x="373" y="106.7" class="st3" width="15" height="19.5"/>',
+                '<rect x="449.3" y="123.5" class="st3" width="15" height="19.5"/>',
+                '<rect x="357.7" y="123.9" class="st3" width="15" height="19.5"/>',
+                '<rect x="366.9" y="159.2" class="st3" width="15" height="19.5"/>',
+                '<rect x="370.1" y="216.7" class="st3" width="15" height="19.5"/>',
+                '<rect x="292.4" y="124.2" class="st3" width="15" height="19.5"/>',
+                '<rect x="315.2" y="51.8" class="st4" width="13.7" height="7.7"/>',
+        ]
+        var whole_height = 243.5
+        var whole_width = 471.5
+        var dot_top = 0
+        var dot_left = 0
+        for (var i = db.length - 1; i >= 0; i--) {
+            var x = Math.round(parseFloat(db[i].split('x="')[1].split('" y')[0]))
+            var y = Math.round(parseFloat(db[i].split('y="')[1].split('" cla')[0]))
+            var w = Math.round(parseFloat(db[i].split('width="')[1].split('" height="')[0]))
+            var h = Math.round(parseFloat(db[i].split('height="')[1].split('/>')[0]))
+            var mx = x + w/2
+            var my = y + h/2
+            db[i] = [x,y,w,h,mx,my]
+        }
+
+        $(document).ready(function(){
+            // $('.wrapper').css({'transform':'scale('+window.innerHeight/whole_height+')'})
+            for (var i = db.length - 1; i >= 0; i--) {
+                $('.wrapper').append('<div class="popup popup_'+i+'"><div class="tab_l"></div><div class="tab_r"></div></div>')
+                $('.wrapper').css({'width' :whole_width+'px'})
+                $('.wrapper').css({'height':whole_height+'px'})
+
+                $('.popup_'+i).css({'left':db[i][0]+'px'})
+                $('.popup_'+i).css({'top':db[i][1]+'px'})
+                $('.popup_'+i).css({'width':db[i][2]+'px'})
+                $('.popup_'+i).css({'height':db[i][3]+'px'})
+            }
+
+
+        })
+        const fpsControl = new FPS();
+        const spinner = document.querySelector('.loading');
+        spinner.ontransitionend = () => {
+          spinner.style.display = 'none';
+        };
+
+        function removeElements(landmarks, elements) {
+          for (const element of elements) {
+            delete landmarks[element];
+          }
+        }
+
+        function removeLandmarks(results) {
+          if (results.poseLandmarks) {
+            removeElements(
+                results.poseLandmarks,
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 19, 20, 21, 22]);
+          }
+        }
+
+        function connect(ctx, connectors) {
+          const canvas = ctx.canvas;
+          for (const connector of connectors) {
+            const from = connector[0];
+            const to = connector[1];
+            if (from && to) {
+              if (from.visibility && to.visibility &&
+                  (from.visibility < 0.1 || to.visibility < 0.1)) {
+                continue;
+              }
+              ctx.beginPath();
+              ctx.moveTo(from.x * canvas.width, from.y * canvas.height);
+              ctx.lineTo(to.x * canvas.width, to.y * canvas.height);
+              ctx.stroke();
+            }
+          }
+        }
+
+
+        function onResultsHolistic(results) {
+            if (results.faceLandmarks) {
+                if(!activated){
+                                activated = true
+                                act_num++
+                                if(act_num == 5){
+                                    act_num = 1
+                                }
+                            }
+                results.faceLandmarks[127].x
+                results.faceLandmarks[162].z
+
+                results.faceLandmarks[356].x
+                results.faceLandmarks[389].z
+
+                lr_angle = get_angle(
+                results.faceLandmarks[127].x,
+                results.faceLandmarks[127].z,
+                results.faceLandmarks[356].x,
+                results.faceLandmarks[356].z)
+                var td_angle_1 = get_angle(
+                results.faceLandmarks[127].y,
+                results.faceLandmarks[127].z,
+                results.faceLandmarks[162].y,
+                results.faceLandmarks[162].z)
+                var td_angle_2 = get_angle(
+                results.faceLandmarks[356].y,
+                results.faceLandmarks[356].z,
+                results.faceLandmarks[389].y,
+                results.faceLandmarks[389].z)
+                var td_offset = 150
+                td_angle = (td_angle_1+td_angle_2)/2 + td_offset
+                var td_angle_t = 25
+                var td_angle_d = -25
+                var lr_angle_l = -35
+                var lr_angle_r = 35
+
+                $('.dot').css({'top': ((td_angle + Math.abs(td_angle_d))/(Math.abs(td_angle_t) + Math.abs(td_angle_d)))*whole_height+'px'})
+                $('.dot').css({'left': ((lr_angle + Math.abs(lr_angle_l))/(Math.abs(lr_angle_l) + Math.abs(lr_angle_r)))*whole_width+'px'})
+                dot_top = ((td_angle + Math.abs(td_angle_d))/(Math.abs(td_angle_t) + Math.abs(td_angle_d)))*whole_height
+                dot_left = ((lr_angle + Math.abs(lr_angle_l))/(Math.abs(lr_angle_l) + Math.abs(lr_angle_r)))*whole_width
+                // x,y,w,h
+                $('.popup').removeClass('activated_'+act_num)
+                for (var i = db.length - 1; i >= 0; i--) {
+                    if((db[i][0]<dot_left)&&((db[i][0]+db[i][2])>dot_left)&&(db[i][1]<dot_top)&&((db[i][1]+db[i][3])>dot_top)){
+                        $('.popup_'+i).addClass('activated_'+act_num)
+                    }
+                }
+
+                if(results.leftHandLandmarks&&results.rightHandLandmarks){
+                }
+
+
+
+                document.body.classList.add('loaded');
+                removeLandmarks(results);
+                fpsControl.tick();
+                canvasCtx4.save();
+                canvasCtx4.clearRect(0, 0, out4.width, out4.height);
+                canvasCtx4.drawImage(
+                results.image, 0, 0, out4.width, out4.height);
+            }else{
+                                activated = false
+                            }
+        }
+
+
+
+
+        const holistic = new Holistic({locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/${file}`;
+        }});
+        holistic.onResults(onResultsHolistic);
+
+        const camera = new Camera(video4, {
+          onFrame: async () => {
+            await holistic.send({image: video4});
+          },
+          width: $('video').outerWidth(),
+          height: $('video').outerHeight()
+        });
+
+        camera.start();
+
+
+
+        function get_angle(cx, cy, ex, ey) {
+            var dy = ey - cy;
+            var dx = ex - cx;
+            var theta = Math.atan2(dy, dx); // range (-PI, PI]
+            theta *= 180 / Math.PI; // rads to degs, range (-180, 180]
+            //if (theta < 0) theta = 360 + theta; // range [0, 360)
+            return theta;
+        }
+
+
+            function radians_to_degrees(radians) {
+                return radians * (180 / Math.PI);
+            }
+
+
+
+        new ControlPanel(controlsElement4, {
+              selfieMode: true,
+              upperBodyOnly: true,
+              smoothLandmarks: true,
+              minDetectionConfidence: 0.5,
+              minTrackingConfidence: 0.5
+            })
+            .add([
+              new StaticText({title: 'MediaPipe Holistic'}),
+              fpsControl,
+              new Toggle({title: 'Selfie Mode', field: 'selfieMode'}),
+              new Toggle({title: 'Upper-body Only', field: 'upperBodyOnly'}),
+              new Toggle(
+                  {title: 'Smooth Landmarks', field: 'smoothLandmarks'}),
+              new Slider({
+                title: 'Min Detection Confidence',
+                field: 'minDetectionConfidence',
+                range: [0, 1],
+                step: 0.01
+              }),
+              new Slider({
+                title: 'Min Tracking Confidence',
+                field: 'minTrackingConfidence',
+                range: [0, 1],
+                step: 0.01
+              }),
+            ])
+            .on(options => {
+              video4.classList.toggle('selfie', options.selfieMode);
+              holistic.setOptions(options);
+            });
+
+        function get_dis(x1, x2, y1, y2){
+            var a = x1 - x2;
+            var b = y1 - y2;
+
+            return Math.sqrt( a*a + b*b );
+        }
+    </script>
+</body>
+</html>

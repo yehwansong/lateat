@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <!-- <script src="js/face_mesh.js"></script>
+    <script src="js/drawing_utils.js"></script>
+    <script src="js/control_utils.js"></script> -->
+    <style type="text/css">
+        * {
+            margin: 0;
+        }
+        img {
+            width: 1050px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .grid{
+            position: absolute;
+            width: 1050px;
+            left: 0;
+            top: 0;
+            z-index: 100
+        }
+    </style>
+</head>
+<body>
+    <img src=img/grid-14.png class="grid">
+    <canvas id="outputCanvas"></canvas>
+    <button id="pauseBtn">Pause</button>
+    <button id="closeBtn">Close</button>
+    <button id="resumeBtn" style="display: none;">Resume</button>
+    <script>
+        var intersectX, intersectY
+        var arrow_pos_array = [
+            [2*((212.4903-525/2)*0.95+525/2) ,2*((112.4971-525/2)*0.95+525/2) ],
+            [2*((262.4914-525/2)*0.95+525/2) ,2*((112.5019-525/2)*0.95+525/2) ],
+            [2*((325.8373-525/2)*0.95+525/2) ,2*((149.1148-525/2)*0.95+525/2) ],
+            [2*((362.4478-525/2)*0.95+525/2) ,2*((212.4995-525/2)*0.95+525/2) ],
+            [2*((362.4526-525/2)*0.95+525/2) ,2*((262.5005-525/2)*0.95+525/2) ],
+            [2*((325.8301-525/2)*0.95+525/2) ,2*((325.8904-525/2)*0.95+525/2) ],
+            [2*((262.4914-525/2)*0.95+525/2) ,2*((362.5019-525/2)*0.95+525/2) ],
+            [2*((212.4903-525/2)*0.95+525/2) ,2*((362.4971-525/2)*0.95+525/2) ],
+            [2*((149.0617-525/2)*0.95+525/2) ,2*((325.8904-525/2)*0.95+525/2) ],
+            [2*((112.4526-525/2)*0.95+525/2) ,2*((262.5005-525/2)*0.95+525/2) ],
+            [2*((112.4478-525/2)*0.95+525/2) ,2*((212.4995-525/2)*0.95+525/2) ],
+            [2*((149.055 -525/2)*0.95+525/2) ,2*((149.1154-525/2)*0.95+525/2) ],
+        ]
+        console.log(arrow_pos_array)
+        var popup_array = [];
+        var angle_array = [
+            -90, -90+15, -90+30, -90+45, -90+60, -90+75, 0, 0+30, 0+60,
+            90+45, 180+30, 180+60
+        ];
+        var pos_array = [];
+        var size_array = [
+            [0.5 * 58.000000000000014, 182 * 0.5],
+            [0.5 * 122.14267276276925, 255.07874762584018 * 0.5],
+            [0.5 * 121.96152422706632, 151.2435565298214 * 0.5],
+            [0.5 * 396.6869042456532, 396.6869042456531 * 0.5],
+            [0.5 * 344.86722157375124, 234.32754963085074 * 0.5],
+            [0.5 * 337.18244286041096, 144.14229159648352 * 0.5],
+            [0.5 * 259, 61 * 0.5],
+            [0.5 * 325.3146626904936, 222.4615242270663 * 0.5],
+            [0.5 * 191.5954988232819, 272.8531384634273 * 0.5],
+            [0.5 * 205.76807332528534, 205.76807332528534 * 0.5],
+            [0.5 * 288.4415957315471, 200.5954988232819 * 0.5],
+            [0.5 * 154.96152422706638, 208.401233179594332 * 0.5]
+        ];
+        var rendered_inx_array = [
+            [476, 947],
+            [373.4133342141177, 921.074039201174],
+            [290.0000000000001, 900.1088913245535],
+            [79.51262658470841, 830.4873734152916],
+            [45.891108675446446, 758],
+            [45.92596079882611, 653.5866657858824],
+            [45, 528],
+            [59.8911086754465, 297],
+            [254.9999999999999, 143.89110867544656],
+            [772.4873734152916, 233.5126265847083],
+            [828.1088913245535, 758],
+            [699.9999999999999, 886.1088913245536]
+        ]
+        const canvasElement = document.getElementById('outputCanvas');
+        canvasElement.width = 1050;  // Set canvas width to 900
+        canvasElement.height = 1050; // Set canvas height to 900
+        const canvasCtx = canvasElement.getContext('2d');
+        const circleX = canvasElement.width / 2;
+        const circleY = canvasElement.width / 2;
+        const radius = 350;
+
+        var init_popups = []
+        var instatant_popups = []
+
+        // const faceMesh = new FaceMesh({
+        //     locateFile: (file) => {
+        //         return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+        //     }
+        // });
+        // faceMesh.setOptions({
+        //     maxNumFaces: 1,
+        //     refineLandmarks: true,
+        //     minDetectionConfidence: 0.5,
+        //     minTrackingConfidence: 0.5
+        // });
+var bugon = false
+function divideIntoThreeParts(total, min, max) {
+    const firstPart = min;
+    const secondPart = min;
+    const thirdPart = total - firstPart - secondPart;
+
+    if (thirdPart >= min && thirdPart <= max) {
+        return [firstPart, secondPart, thirdPart];
+    } else {
+        return null; // If it's not possible to divide within the constraints
+    }
+}
+        async function fetchImage(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.src = url;
+                img.width = 900;  // Set image width to 900
+                img.height = 900; // Set image height to 900
+            });
+        }
+
+        async function loadImages() {
+            const images = [];
+            for (let i = 0; i < 250; i++) {  // Adjust number of frames as needed
+                const paddedIndex = String(i).padStart(3, '0');
+                const img = await fetchImage(`img/seq${paddedIndex}.png`);
+                images.push(img);
+            }
+            return images;
+        }
+
+        async function main() {
+            const images = await loadImages();
+            let currentFrame = 123;
+            const fps = 70;
+            let interval = 1000 / fps;
+            let isPaused = false;
+
+
+            // faceMesh.onResults(onResults);
+
+            // function onResults(results) {
+            //     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            //     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            //     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            //         const nose = results.multiFaceLandmarks[0][1]; // The landmark for the nose tip
+            //         canvasCtx.fillStyle = 'red';
+            //         canvasCtx.beginPath();
+            //         canvasCtx.arc(nose.x * canvasElement.width, nose.y * canvasElement.height, 5, 0, 2 * Math.PI);
+            //         canvasCtx.fill();
+            //     }
+            // }
+            var innerFrame = 0
+            async function processFrame() {
+                var a, b
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.drawImage(images[currentFrame], 0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.beginPath();
+                // canvasCtx.arc(nose.x * canvasElement.width, nose.y * canvasElement.height, 5, 0, 2 * Math.PI);
+                canvasCtx.fill();
+                if (isPaused) return;
+                
+                if (currentFrame >= images.length - 1) currentFrame = 0;
+                const image = images[currentFrame];
+                var frames = [132, 133, 145, 159, 170, 182, 192, 215, 232, 29, 76, 102]
+                // await faceMesh.send({ image });
+                if (frames.includes(currentFrame)) {
+                    if(currentFrame == 132){
+
+                        if(init_popups.length == 0){
+                            for (var i = 0; i <12; i++) {
+                                init_popups.push(window.open("arrow.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0"))
+                                init_popups[i].moveTo(arrow_pos_array[i][0],arrow_pos_array[i][1]+66)
+                            }
+                        }
+                    }
+                    if(innerFrame == 0){
+                        a = Math.floor(size_array[popup_array.length][0]);
+                        b = Math.floor(size_array[popup_array.length][1]) + 29; 
+                        var pre_a = Math.random()*300+100
+                        var pre_b = Math.random()*300+100 
+                            if(currentFrame == 29){    
+                                                    popup_array.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+a+", height="+b+", top=0,left=0"));
+                                                }else{
+                                                    popup_array.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                                                }
+                        const angleRad = (angle_array[popup_array.length - 1] + 180) * (Math.PI / 180);
+                        if(angle_array[popup_array.length - 1]<90){
+                            var extrasX = Math.floor(size_array[popup_array.length-1][0])
+                        }else{
+                            var extrasX = 0
+                        }
+                        if(angle_array[popup_array.length - 1]<0||angle_array[popup_array.length - 1]>180){
+                            var extrasY = 58
+                        }else{
+                            var extrasY = -1*Math.floor(size_array[popup_array.length-1][1])+58
+                        }
+                        intersectX = circleX + radius * Math.cos(angleRad) - extrasX;
+                        intersectY = circleY + radius * Math.sin(angleRad) + extrasY;
+                        popup_array[popup_array.length - 1].moveTo(rendered_inx_array[popup_array.length - 1][0],rendered_inx_array[popup_array.length - 1][1]);
+
+                        console.log([intersectX, intersectY])
+                        popup_array[popup_array.length - 1].resizeTo(a , b)
+                        pos_array.push([-1 * intersectX, -1 * intersectY + 32]);
+
+                        if(currentFrame!==215&& currentFrame!==232&&currentFrame!==29&& currentFrame!==76&& currentFrame!==102){
+                            if(frames.indexOf(currentFrame)==0){
+                                var bugs = frames.length-1
+                            }else{
+                                var bugs = frames.indexOf(currentFrame)-1
+                            }
+                            if(innerFrame%2 ==0 && Math.random()>0.2){
+                                if(!bugon){
+                                    bugon = true
+                                    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.drawImage(images[frames[bugs]], 0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.beginPath();
+                                }else{
+                                    bugon = false
+                                    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.drawImage(images[currentFrame], 0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.beginPath();
+                                }
+                            }
+                        }
+                    }
+                        if(innerFrame == 1){
+                            popup_array[popup_array.length - 1].moveTo(rendered_inx_array[popup_array.length - 1][0],rendered_inx_array[popup_array.length - 1][1]);
+                        }
+                    innerFrame++
+                    if(currentFrame!==215&& currentFrame!==232&&currentFrame!==29&& currentFrame!==76&& currentFrame!==102){
+                        if(innerFrame == 1){
+                            var pre_a = Math.random()*300+100
+                            var pre_b = Math.random()*300+100
+                            if(Math.round(Math.random())==0){
+                                var random_1 = -1*pre_a
+                            }else{
+                                var random_1 = a
+                            }
+                            if(Math.round(Math.random())==0){
+                                var random_2 = -1*pre_b
+                            }else{
+                                var random_2 = b
+                            }
+                            instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            instatant_popups[instatant_popups.length-1].moveTo(intersectX+random_1,intersectY+random_2)
+                        }
+                        if(innerFrame == 2){
+                            var pre_a = Math.random()*300+500
+                            var pre_b = 100
+                            if(Math.round(Math.random())==0){
+                                var random_1 = canvasElement.width-pre_a
+                            }else{
+                                var random_1 = 0
+                            }
+                            if(Math.round(Math.random())==0){
+                                var random_2 = -100
+                            }else{
+                                var random_2 = b
+                            }
+                            console.log(intersectX)
+                            instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            instatant_popups[instatant_popups.length-1].moveTo(random_1,intersectY+random_2)
+                        }
+                        if(innerFrame == 3){
+                            var pre_a =  100
+                            var pre_b = Math.random()*300+500
+                            if(Math.round(Math.random())==0){
+                                var random_1 = -1*pre_a
+                            }else{
+                                var random_1 = a
+                            }
+                            if(Math.round(Math.random())==0){
+                                var random_2 = canvasElement.width-pre_b
+                            }else{
+                                var random_2 = 0
+                            }
+                            instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            instatant_popups[instatant_popups.length-1].moveTo(intersectX+random_1,random_2)
+                        }
+                        if(innerFrame == 4){
+                            var pre_a = Math.random()*300+100
+                            var pre_b = Math.random()*300+100
+                            if(Math.round(Math.random())==0){
+                                var random_1 = -1*pre_a
+                            }else{
+                                var random_1 = a
+                            }
+                            if(Math.round(Math.random())==0){
+                                var random_2 = -1*pre_b
+                            }else{
+                                var random_2 = b
+                            }
+                            instatant_popups.push(window.open("popup.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
+                            instatant_popups[instatant_popups.length-1].moveTo(intersectX+random_1,intersectY+random_2)
+                        }
+                        if(innerFrame == 5){
+                            for (var i = instatant_popups.length - 1; i >= 0; i--) {
+                                instatant_popups[i].close()
+                            }
+                            instatant_popups = []
+                        }
+                    }
+                    if(innerFrame == 20 || currentFrame == 29){
+                        bugon = false
+                        currentFrame++
+                        innerFrame = 0
+                    }
+
+                } else {
+                    innerFrame = 0
+                    currentFrame++;
+                }
+                    interval = 1000 / fps;
+
+                for (let i = popup_array.length - 1; i >= 0; i--) {
+                    const array = [currentFrame, pos_array[i][0], pos_array[i][1], size_array[i][0], size_array[i][1], angle_array[i], i + 1];
+                    popup_array[i].postMessage(array, '*');
+                }
+                    if(currentFrame>=132){
+                        var rotating =  Math.floor((currentFrame-132)/20)
+                    }else{
+                        var rotating =  Math.floor((currentFrame+132)/20)
+                    }
+                    console.log(rotating)
+                for (let i = init_popups.length - 1; i >= 0; i--) {
+                    if(i == rotating){
+                    var init_array = [currentFrame, -1*arrow_pos_array[i][0], -1*arrow_pos_array[i][1]];
+                    }else{
+                    var init_array = [currentFrame, -1*arrow_pos_array[i][0], -1*arrow_pos_array[i][1]];
+                    }
+                    init_popups[i].postMessage(init_array, '*');
+                }
+
+                if (currentFrame == 122) {
+                    for (let i = popup_array.length - 1; i >= 0; i--) {
+                        popup_array[i].close();
+                    }
+                    for (let i = init_popups.length - 1; i >= 0; i--) {
+                        init_popups[i].close();
+                    }
+                    popup_array = [];
+                }
+
+                setTimeout(processFrame, interval);
+            }
+
+            document.getElementById('pauseBtn').addEventListener('click', function() {
+                isPaused = true;
+                document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('resumeBtn').style.display = 'inline';
+            });
+
+            document.getElementById('closeBtn').addEventListener('click', function() {
+                    for (let i = popup_array.length - 1; i >= 0; i--) {
+                        popup_array[i].close();
+                    }
+                    for (let i = init_popups.length - 1; i >= 0; i--) {
+                        init_popups[i].close();
+                    }
+                            for (var i = instatant_popups.length - 1; i >= 0; i--) {
+                                instatant_popups[i].close()
+                            }
+            });
+
+            document.getElementById('resumeBtn').addEventListener('click', function() {
+                isPaused = false;
+                document.getElementById('pauseBtn').style.display = 'inline';
+                document.getElementById('resumeBtn').style.display = 'none';
+                processFrame(); // Resume the process
+            });
+
+            processFrame();
+        }
+
+
+        main();
+    </script>
+</body>
+</html>

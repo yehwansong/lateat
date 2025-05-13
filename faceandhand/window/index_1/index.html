@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - MediaPipe - Holistic</title>
+    <meta charset="utf-8">
+  <link rel="icon" href="favicon.ico">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.css" crossorigin="anonymous">
+  <link rel="stylesheet" type="text/css" href="demo.css" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/holistic.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+    <div class="tab tab_l"></div><div class="tab tab_r"></div><div class="tab tab_c"></div>
+    <div class="ex ex_1"><div class="tab tab_l"></div><div class="tab tab_r"></div></div>
+    <div class="ex ex_2"><div class="tab tab_l"></div><div class="tab tab_r"></div></div>
+    <div class="ex ex_3"><div class="tab tab_l"></div><div class="tab tab_r"></div></div>
+    <div class="ex ex_4"><div class="tab tab_l"></div><div class="tab tab_r"></div></div>
+  <div class="blocker"></div>
+  <div class="whole">
+<!-- partial:index.partial.html -->
+<div class="container">
+    <video class="input_video"></video>
+        <canvas class="output_canvas" width="1280px" height="720px">
+        </canvas>
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="message">
+        Loading
+      </div>
+    </div>
+    <a class="abs logo" href="http://www.mediapipe.dev" target="_blank">
+      <div style="display: flex;align-items: center;bottom: 0;right: 10px;">
+        <img class="logo" src="logo_white.png" alt="" style="
+          height: 50px;">
+        <span class="title">MediaPipe</span>
+      </div>
+    </a>
+    <div class="shoutout">
+      <div>
+        <a href="https://solutions.mediapipe.dev/holistic">
+          Click here for more info
+        </a>
+      </div>
+    </div>
+        <div class="dot_wrapper">
+            <div class='dot dot_lefteye'></div>
+            <div class='dot dot_righteye'></div>
+            <div class='dot dot_leftfinger_8'></div>
+            <div class='dot dot_rightfinger_8'></div>
+
+            <div class="dot dot_1"></div>
+            <div class="dot dot_2"></div>
+            <div class="dot dot_3"></div>
+            <div class="dot dot_4"></div>
+            <div class='dot dot_center'></div>
+
+
+        <div class="dot dot_227"></div>
+        <div class="dot dot_447"></div>
+
+
+    <div class='dot dot_leftfinger dot_leftfinger_5 '></div>
+    <div class='dot dot_leftfinger dot_leftfinger_6 '></div>
+    <div class='dot dot_leftfinger dot_leftfinger_7 '></div>
+    <div class='dot dot_leftfinger dot_leftfinger_8 '></div>
+    <div class='dot dot_leftfinger dot_leftfinger_13'></div>
+    <div class='dot dot_leftfinger dot_leftfinger_14'></div>
+    <div class='dot dot_leftfinger dot_leftfinger_15'></div>
+    <div class='dot dot_leftfinger dot_leftfinger_16'></div>
+    <div class='dot dot_leftfinger dot_leftfinger_5 '></div>
+    <div class='dot dot_leftfinger dot_leftfinger_9 '></div>
+    <div class='dot dot_leftfinger dot_leftfinger_13'></div>
+    <div class='dot dot_leftfinger dot_leftfinger_17'></div>
+
+    <div class='dot dot_rightfinger dot_rightfinger_5 '></div>
+    <div class='dot dot_rightfinger dot_rightfinger_6 '></div>
+    <div class='dot dot_rightfinger dot_rightfinger_7 '></div>
+    <div class='dot dot_rightfinger dot_rightfinger_8 '></div>
+    <div class='dot dot_rightfinger dot_rightfinger_13'></div>
+    <div class='dot dot_rightfinger dot_rightfinger_14'></div>
+    <div class='dot dot_rightfinger dot_rightfinger_15'></div>
+    <div class='dot dot_rightfinger dot_rightfinger_16'></div>
+    <div class='dot dot_rightfinger dot_rightfinger_5 '></div>
+    <div class='dot dot_rightfinger dot_rightfinger_9 '></div>
+    <div class='dot dot_rightfinger dot_rightfinger_13'></div>
+    <div class='dot dot_rightfinger dot_rightfinger_17'></div>
+        </div>
+</div>
+        <div class="popup popup_1_1"></div>
+        <div class="popup popup_1_2"></div>
+        <div class="popup popup_2_1"></div>
+  <div class="control-panel">
+  </div>
+</div>
+<!-- partial -->
+  <script type="module" src="./script.js"></script></body>
+</html>
