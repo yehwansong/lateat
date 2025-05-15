@@ -90,42 +90,15 @@
     	var position_defined = false
         var wiggle = 0
         window.addEventListener('message', (event) => {
-            const imageElement = document.getElementById('image');
+            console.log(event.data)
             	if(!position_defined){
-            		if(isNumber(event.data[0])){
-            			position_defined = true
-		                var [currentFrame, positionX, positionY] = event.data;
-		                imageElement.style.left = `${positionX}px`;
-		                imageElement.style.top = `${positionY}px`;
+            		if(isNumber(event.data)){
+                            var rotation = event.data
+                            $('.arrow').show()
+                            $('.arrow').css({'transform':'rotate('+(rot_array[rotation])+'deg)'})
 		            }
                 }else{
-            		if(isNumber(event.data[0])){
-	                	var currentFrame = event.data[0];
-	                }
                 }
-                if(currentFrame%3 == 0){
-                    wiggle = Math.random()*4
-                }
-                        if(event.data.length == 4){
-                            var rotation = event.data[3]
-                            $('.arrow').show()
-                            $('.arrow').css({'transform':'rotate('+(rot_array[rotation]+wiggle)+'deg)', 
-                                // 'translate':'transform 0.5s'
-                        })
-                        }
-
-                // Update image sequence
-                if(currentFrame){
-                    const paddedFrame = String(currentFrame).padStart(3, '0'); // Ensure frame number is 3 digits
-                    imageElement.src = `img/resized_images/seq${paddedFrame}.png`;
-
-    				document.getElementById('message').innerText = paddedFrame
-                }
-
-                // Display the received message
-            // } else {
-            //     console.log('Message from unknown origin');
-            // }
         });
 
 function detectTabSize() {

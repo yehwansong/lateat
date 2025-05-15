@@ -309,7 +309,9 @@ var increasing = false
 var prev_ang = 0
 var prev_unit = 0
 var popup_array = Array(12)
+var popup_array_message = Array(12)
 var text_array = Array(8)
+var text_array_message = Array(8)
 var stuck_counter = 0
 var step_counter = 0
                 var a, b, c
@@ -342,16 +344,25 @@ var step_counter = 0
             [0.25*(498+10),98*0.25],
         ];
 var pos_array = [
-    [window.innerWidth * (525 / 1050) - size_array[0][0] / 2, window.innerHeight * ((1050 - (715 + 100)) / 2 / 1050) + (715 + 100) - size_array[0][1] / 2 ], // Bottom
-    [window.innerWidth * (310 / 1050) - size_array[1][0], window.innerHeight * (645 / 1050) + 100 + 29 + 29], // Left Bottom
-    [window.innerWidth * (120 / 1050) - size_array[2][0] / 2 + 7.25 + 5 + 5 + 5, window.innerHeight * (525 / 1050) - size_array[2][1] / 2 + 29], // Left
-    [window.innerWidth * (310 / 1050) - size_array[3][0], window.innerHeight * (120 / 1050) - size_array[4][1] / 2 + 3.625 + 1.75], // Left top
-    [window.innerWidth * (525 / 1050) - size_array[4][0] / 2, window.innerHeight * (120 / 1050) - size_array[4][1] / 2 + 3.625 + 1.75], // Top
-    [window.innerWidth * (645 / 1050) + 100, window.innerHeight * (120 / 1050) - size_array[4][1] / 2 + 3.625 + 1.75], // Right Top
-    [window.innerWidth * ((1050 - (715 + 100)) / 2 / 1050) + (715 + 100) - size_array[6][0] / 2 - 7.25 - 5, window.innerHeight * (525 / 1050) - size_array[6][1] / 2 + 29], // Right
-    [window.innerWidth * (645 / 1050) + 100, window.innerHeight * (645 / 1050) + 100 + 29 + 29], // Right Bottom
+    [   window.innerHeight * (525 / 1050) - size_array[0][0] / 2 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (930 / 1050) ], // Bottom
+    [   window.innerHeight * (310 / 1050) - size_array[1][0] + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (645 / 1050) + 100 + 29 + 29], // Left Bottom
+    [   window.innerHeight * (120 / 1050) - size_array[2][0] / 2 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (525 / 1050) - size_array[2][1] / 2 + 29], // Left
+    [   window.innerHeight * (310 / 1050) - size_array[3][0] + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (120 / 1050) - size_array[4][1] / 2], // Left top
+    [   window.innerHeight * (525 / 1050) - size_array[4][0] / 2 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (120 / 1050) - size_array[4][1] / 2], // Top
+    [   window.innerHeight * (645 / 1050) + 100 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (120 / 1050) - size_array[4][1] / 2], // Right Top
+    [   window.innerHeight * (800 / 1050) + 100 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (525 / 1050) - size_array[6][1] / 2], // Right
+    [   window.innerHeight * (645 / 1050) + 100 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (645 / 1050) + 100 + 29 + 29], // Right Bottom
 ];
-
+var canvasWidth
+var canvasHeight
         var arrow_width = 0
 
     function resizeCanvas() {
@@ -420,8 +431,8 @@ function onResults(results) {
             if(!sizeset){
                 sizeset = true
 
-                var canvasWidth = $('.canvas-container').outerWidth();
-                var canvasHeight = $('.canvas-container').outerHeight();
+                canvasWidth = $('.canvas-container').outerWidth();
+                canvasHeight = $('.canvas-container').outerHeight();
 
                 // var scaleValue = 0.2 / distanceBetweenPoints(
                 //     results.multiFaceLandmarks[0][159].x, results.multiFaceLandmarks[0][159].y, 
@@ -468,6 +479,18 @@ function onResults(results) {
                 	increasing = false
                 }
                 prev_ang = new_ang
+                if((counter%10)==0){
+                    for (var i = text_array.length - 1; i >= 0; i--) {
+                        if(text_array[i]){
+                            text_array[i].postMessage(text_array_message[i], '*');
+                        }
+                    }
+                    for (var i = popup_array.length - 1; i >= 0; i--) {
+                        if(popup_array[i]){
+                            popup_array[i].postMessage(popup_array_message[i], '*');
+                        }
+                    }
+                }
                 if(pre_mov_counter > 10){
                 	stuck_counter = 0
                 	if(increasing){
@@ -475,6 +498,7 @@ function onResults(results) {
                 			var new_unit = Math.floor(new_ang/30)
 	                			if(!popup_array[new_unit]){
 	                				popup_array[new_unit] = window.open("arrow.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0")
+                                popup_array_message[new_unit] = Math.floor(new_ang/30)
 	                			}
 	                			for (var i = popup_array.length - 1; i >= 0; i--) {
 	                				if(popup_array[i]){
@@ -491,60 +515,18 @@ function onResults(results) {
 	                        var pre_b = Math.random()*300+100 
 	                        intersectX = a
 	                        intersectY = b 
+
 	                        if(!text_array[new_unit_text]){
     	                        text_array[new_unit_text] = window.open("popup_web.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0")
     	                        text_array[new_unit_text].resizeTo(a , b)
 		                        text_array[new_unit_text].moveTo(pos_array[new_unit_text][0],pos_array[new_unit_text][1]);
+                                text_array_message[new_unit_text] = [-1*pos_array[new_unit_text][0], -1*pos_array[new_unit_text][1]+29, a , b, Math.floor(new_ang/45),canvasWidth,canvasHeight,new_unit_text];
+                                console.log(text_array_message[new_unit_text])
 		                        if(step_counter>0 && counter - step_counter == 1){
-		                        	// console.log('!!!!!')
-		                        	// for (var i = text_array.length - 1; i >= 0; i--) {
-				                       //  if(text_array[i]){
-			                        // 		text_array[i].moveTo(pos_array[i][0],pos_array[i][1]);
-			                        // 		console.log([pos_array[i][0],pos_array[i][1]])
-			    	                   //  }
-		                        	// }
 		                            instatant_popups = []
 			                        	step_counter = 0
 		                        }
-		                  //       if(Math.random()>0.5){
-		                  //           var pre_a = Math.random()*300+100
-		                  //           var pre_b = Math.random()*300+100
-		                  //           if(Math.round(Math.random())==0){
-		                  //               var random_1 = -1*pre_a
-		                  //           }else{
-		                  //               var random_1 = a
-		                  //           }
-		                  //           if(Math.round(Math.random())==0){
-		                  //               var random_2 = -1*pre_b
-		                  //           }else{
-		                  //               var random_2 = b
-		                  //           }
-		                  //           instatant_popups.push(window.open("white.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
-		                  //           instatant_popups[instatant_popups.length-1].moveTo(intersectX+random_1,intersectY+random_2)
-		                  //       }else{
-		                  //           var pre_a = Math.random()*300+500
-		                  //           var pre_b = 100
-		                  //           if(Math.round(Math.random())==0){
-		                  //               var random_1 = canvasElement.width-pre_a
-		                  //           }else{
-		                  //               var random_1 = 0
-		                  //           }
-		                  //           if(Math.round(Math.random())==0){
-		                  //               var random_2 = -100
-		                  //           }else{
-		                  //               var random_2 = b
-		                  //           }
-		                  //           instatant_popups.push(window.open("white.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0"));
-		                  //           instatant_popups[instatant_popups.length-1].moveTo(random_1,intersectY+random_2)
-		                		// }
     	                    }
-	                		                			// if(!popup_array[(i+12-1)%12]){
-	                		                			// 	for (var i = popup_array.length - 1; i >= 0; i--) {
-	                		                			// 		if(popup_array[i]&&i!==new_unit){
-	                		                			// 			popup_array[i].close()
-	                		                			// 			popup_array[i] = undefined
-	                		                			// 		}
-	                		                			// 	}
 	                	}else{
 
 	                            for (var i = instatant_popups.length - 1; i >= 0; i--) {
@@ -555,7 +537,7 @@ function onResults(results) {
 
             	}else{
                 	stuck_counter++
-                	if(stuck_counter > 30){
+                	if(stuck_counter > 35){
                 		console.log('!!!!!')
                 		for (var i = popup_array.length - 1; i >= 0; i--) {
                 			if(popup_array[i]){
@@ -757,44 +739,61 @@ new controls
 
 
 
+    // Key press navigation
+    const keyMap = {
+      q: 'http://localhost:8000/index1.html',
+      w: 'http://localhost:8000/index2.html',
+      e: 'http://localhost:8000/index3.html',
+      a: 'http://localhost:8000/index4.html',
+      s: 'http://localhost:8000/index5.html',
+      d: 'http://localhost:8000/index6.html',
+    };
+
+    document.addEventListener('keydown', (e) => {
+      const url = keyMap[e.key.toLowerCase()];
+      if (url) {
+        window.location.href = url;
+      }
+    });
+
     $(document).ready(function(){
         tabSize = detectTabSize();
         console.log(tabSize)
 
-pos_array = [
-    [
-    	window.innerWidth * 1/2 - size_array[0][0] / 2, 
-    	window.innerHeight * 1/2 + 310 - size_array[0][1] / 2  + tabSize
-    ], // Bottom
-    [
-    	window.innerWidth * 1/2-120 - size_array[1][0], 
-    	window.innerHeight * 1/2+120 + tabSize
-    ], // Left Bottom
-    [
-    	window.innerWidth * 1/2-310 - size_array[2][0] / 2, 
-    	window.innerHeight * 1/2 - size_array[2][1] / 2 + tabSize
-    ], // Left
-    [
-    	window.innerWidth * 1/2-120 - size_array[3][0], 
-    	window.innerHeight * 1/2-120 + tabSize
-    ], // Left top
-    [
-    	window.innerWidth * 1/2  - size_array[4][0] / 2, 
-    	window.innerHeight * 1/2-310 - size_array[4][1] / 2 + tabSize
-    ], // Top
-    [
-    	window.innerWidth * 1/2 + 120, 
-    	window.innerHeight * 1/2 - 120 + tabSize
-    ], // Right Top
-    [
-    	window.innerWidth * 1/2+310 - size_array[6][0] / 2, 
-    	window.innerHeight * 1/2 - size_array[6][1] / 2 + tabSize
-    ], // Right
-    [	
-    	window.innerWidth * 1/2+310 , 
-    	window.innerHeight * 1/2+310 + tabSize
-    ], // Right Bottom
-];
+// pos_array = [
+//     [
+//     	window.innerWidth * 1/2 - size_array[0][0] / 2, 
+//     	window.innerHeight * 1/2 + 310 - size_array[0][1] / 2  + tabSize
+//     ], // Bottom
+//     [
+//     	window.innerWidth * 1/2-120 - size_array[1][0], 
+//     	window.innerHeight * 1/2+120 + tabSize
+//     ], // Left Bottom
+//     [
+//     	window.innerWidth * 1/2-310 - size_array[2][0] / 2, 
+//     	window.innerHeight * 1/2 - size_array[2][1] / 2 + tabSize
+//     ], // Left
+//     [
+//     	window.innerWidth * 1/2-120 - size_array[3][0], 
+//     	window.innerHeight * 1/2-120 + tabSize
+//     ], // Left top
+//     [
+//     	window.innerWidth * 1/2  - size_array[4][0] / 2, 
+//     	window.innerHeight * 1/2-310 - size_array[4][1] / 2 + tabSize
+//     ], // Top
+//     [
+//     	window.innerWidth * 1/2 + 120, 
+//     	window.innerHeight * 1/2 - 120 + tabSize
+//     ], // Right Top
+//     [
+//     	window.innerWidth * 1/2+310 - size_array[6][0] / 2, 
+//     	window.innerHeight * 1/2 - size_array[6][1] / 2 + tabSize
+//     ], // Right
+//     [	
+//     	window.innerWidth * 1/2+310 , 
+//     	window.innerHeight * 1/2+310 + tabSize
+//     ], // Right Bottom
+// ];
         $('.int').click(function(){
             console.log((popup1))
             if(!popup1){

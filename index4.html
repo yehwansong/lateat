@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      color: white;
+      height: 100%;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: serif;
+      font-size: 1.1rem;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    #countdown {
+      margin-top: 0.25rem;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>Am I seeing the right things?</div>
+    <div id="countdown">60</div>
+  </div>
+
+  <script>
+    let seconds = 60;
+    const countdownEl = document.getElementById('countdown');
+
+    const interval = setInterval(() => {
+      seconds--;
+      countdownEl.textContent = `${seconds}`;
+
+      if (seconds <= 0) {
+        clearInterval(interval);
+        countdownEl.textContent = '0';
+      }
+    }, 1000);
+  </script>
+  <script type="text/javascript">
+    
+
+    // Key press navigation
+    const keyMap = {
+      d: 'http://localhost:8000/dialog_web/web.html',
+      f: 'http://localhost:8000/faceandhand/index_5.html',
+    };
+
+    document.addEventListener('keydown', (e) => {
+      const url = keyMap[e.key.toLowerCase()];
+      if (url) {
+        window.location.href = url;
+      }
+    });
+
+  </script>
+</body>
+</html>

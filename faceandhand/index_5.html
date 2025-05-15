@@ -27,10 +27,11 @@
         position: absolute;
     }
     .container{
-        width: 80vw;
+        width: 100vw;
         height: 100vh;
     overflow: hidden;
     background: #d2cec8;
+    max-width: 100vw !important
     /*overflow: hidden;*/
     }
     .dot{
@@ -153,6 +154,24 @@
     <script type="text/javascript">
 
 
+    // Key press navigation
+    const keyMap = {
+      q: 'http://localhost:8000/index1.html',
+      w: 'http://localhost:8000/index2.html',
+      e: 'http://localhost:8000/index3.html',
+      a: 'http://localhost:8000/index4.html',
+      s: 'http://localhost:8000/index5.html',
+      d: 'http://localhost:8000/index6.html',
+    };
+
+    document.addEventListener('keydown', (e) => {
+      const url = keyMap[e.key.toLowerCase()];
+      if (url) {
+        window.location.href = url;
+      }
+    });
+
+
          var popup_1_open = false
          var popup_1_shrink = false
          var popup_1_l = 10
@@ -246,10 +265,10 @@
              standard = get_dis(results.faceLandmarks[386].x, results.faceLandmarks[374].x, results.faceLandmarks[386].y, results.faceLandmarks[374].y)*3
              if(long_standard  == 0 ){
                 long_standard = get_dis(results.faceLandmarks[10].x, results.faceLandmarks[152].x, results.faceLandmarks[10].y, results.faceLandmarks[152].y)
-                $('.columns').css({'transform':'translateX(-50%) translateY(-50%) scale('+(window.innerHeight/long_standard) / 1200+')'})
-                console.log('hey')
-                $('.output4').css({'transform':'translate('+(0.5-results.faceLandmarks[1].x)*$('.output4').outerWidth()+'px, '+(0.5-results.faceLandmarks[1].y)*$('.output4').outerHeight()+'px)'})
-                $('.dot_wrapper').css({'transform':'translate('+(0.5-results.faceLandmarks[1].x)*$('.output4').outerWidth()+'px, '+(0.5-results.faceLandmarks[1].y)*$('.output4').outerHeight()+'px)'})
+                // $('.columns').css({'transform':'translateX(-50%) translateY(-50%) scale('+(window.innerHeight/long_standard) / 1500+')'})
+                // console.log('hey')
+                // $('.output4').css({'transform':'translate('+(0.5-results.faceLandmarks[1].x)*$('.output4').outerWidth()+'px, '+(0.5-results.faceLandmarks[1].y)*$('.output4').outerHeight()+'px)'})
+                // $('.dot_wrapper').css({'transform':'translate('+(0.5-results.faceLandmarks[1].x)*$('.output4').outerWidth()+'px, '+(0.5-results.faceLandmarks[1].y)*$('.output4').outerHeight()+'px)'})
             }
                 $('.dot_lefteye').css({'left':(results.faceLandmarks[390].x*c_width)+'px'})
                 $('.dot_lefteye').css({'top':(results.faceLandmarks[390].y*c_height)+'px'})
@@ -292,17 +311,20 @@
         }
         var tabsize = window.screen.height - window.innerHeight - 80
 
+function openwindow(dir) {
+    const index = counter; // capture the current index
+    popup_array[index] = window.open("popup.html", "", "scrollbar");
+    popup_array[index].resizeTo(100, 100);
+    movewindow(index, dir, 0, Math.floor(Math.random() * 5) + 1);
+    counter++;
 
-            function openwindow(dir){
-                popup_array[counter] = window.open("popup.html", "", "scrollbar")
-                popup_array[counter].resizeTo(100,100)
-                movewindow(counter,dir,0,Math.floor(Math.random()*5)+1)
-                counter++
-
-                setTimeout(function(){
-                    popup_array[0].close();
-                },10000)
-            }
+    // Close the correct window after 1 second (1000ms)
+    setTimeout(function () {
+        if (popup_array[index] && !popup_array[index].closed) {
+            popup_array[index].close();
+        }
+    }, 15000);
+}
 
             function movewindow(index,dir,counter,random){
                 console.log(random)
