@@ -499,11 +499,18 @@ function onResults(results) {
                 			var new_unit = Math.floor(new_ang/30)
 	                			if(!popup_array[new_unit]){
 	                				popup_array[new_unit] = window.open("arrow.html" , '_blank_' + Date.now(), "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0")
-                                    for (var k = popup_array.length - 1; k >= 0; k--) {
-                                        if(popup_array[k]){
-                                            popup_array[k].resizeTo(50 , 50)
-                                        }
-                                    }
+                                    
+const popupRef = popup_array[new_unit];
+const sizes = [50, 50, 50, 50]; // or vary size if needed
+[100, 200, 300, 400].forEach((delay, i) => {
+    setTimeout(() => {
+        try {
+            if (popupRef) popupRef.resizeTo(sizes[i], sizes[i]);
+        } catch (e) {
+            console.warn('Resize failed at', delay, 'ms');
+        }
+    }, delay);
+});
                                     
                                     popup_array_message[new_unit] = Math.floor(new_ang/30)
 	                			}
