@@ -419,7 +419,7 @@ function onResults(results) {
     if (results.multiFaceLandmarks) {
     	if(results.multiFaceLandmarks.length == 0 ){
                 	stuck_counter  = stuck_counter+5
-                	if(stuck_counter > 10){
+                	if(stuck_counter > 30){
                 		for (var i = popup_array.length - 1; i >= 0; i--) {
                 			if(popup_array[i]){
                 				popup_array[i].close()
@@ -497,7 +497,7 @@ function onResults(results) {
                 		if((new_ang%30)<10){
                 			var new_unit = Math.floor(new_ang/30)
 	                			if(!popup_array[new_unit]){
-	                				popup_array[new_unit] = window.open("arrow.html" , '_blank_' + Date.now(), "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0")
+	                				popup_array[new_unit] = window.open("arrow.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0")
                                 popup_array_message[new_unit] = Math.floor(new_ang/30)
 	                			}
 	                			for (var i = popup_array.length - 1; i >= 0; i--) {
