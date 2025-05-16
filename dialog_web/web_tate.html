@@ -6,7 +6,7 @@
 	<meta charset="utf-8">
 	<link rel="icon" href="favicon.ico">
 	<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.css" crossorigin="anonymous">
-	<!-- <link rel="stylesheet" type="text/css" href="demo.css" crossorigin="anonymous"> -->
+	<link rel="stylesheet" type="text/css" href="demo.css" crossorigin="anonymous">
 	<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
@@ -493,17 +493,12 @@ function onResults(results) {
                 }
                 if(pre_mov_counter > 10){
                 	stuck_counter = 0
-                            console.log('!_1')
                 	if(increasing){
-                            console.log('!_0')
                 		if((new_ang%30)<10){
                 			var new_unit = Math.floor(new_ang/30)
-                            console.log(popup_array[new_unit])
 	                			if(!popup_array[new_unit]){
-                    console.log('!_!_!')
 	                				popup_array[new_unit] = window.open("arrow.html" , '_blank_' + Date.now(), "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0")
-                                    popup_array[new_unit_text].resizeTo(50 , 50)
-                                    popup_array_message[new_unit] = Math.floor(new_ang/30)
+                                popup_array_message[new_unit] = Math.floor(new_ang/30)
 	                			}
 	                			for (var i = popup_array.length - 1; i >= 0; i--) {
 	                				if(popup_array[i]){
