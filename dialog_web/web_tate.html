@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+	<meta charset="utf-8">
+	<link rel="icon" href="favicon.ico">
+	<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.css" crossorigin="anonymous">
+	<link rel="stylesheet" type="text/css" href="demo.css" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.js" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+	<style type="text/css">
+		.control-panel{
+			display: none;
+		}
+    .dot{
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        /*background-color: red;*/
+        z-index: 100
+    }
+    .text{
+        position: relative;
+    }
+     .text_main{
+    font-style: italic;
+     }
+     .text_main:hover{
+        text-decoration: underline;
+     }
+    .whole{
+    position: absolute;
+    width: 100vw;
+    left: 0;
+    z-index: 10000;
+    padding: 8vh;
+    box-sizing: border-box;
+    bottom: 0;
+    overflow-y: scroll;
+    top: 25vh;
+    text-align: center;
+    padding-top: 0;
+    height: 75vh;
+    }
+    .int,.un_int{
+    
+    z-index: 10000;
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    font-weight: 900;
+    text-transform: uppercase;
+    padding-top: 0.3vh;
+    padding-left: 0.4vh;
+    padding-right: 0.4vh;
+    }
+    .un_int{
+
+    transform: translateX(-110%);
+    background: white;
+    color: black;
+    }
+    .int{
+
+    transform: translateX(10%);
+    }
+    .dash{
+    position: absolute;
+    height: 1px;
+    width: 100vw;
+    top: 50vh;
+    z-index: 1000000000;
+    background-image: url(img/dash-01.png);
+    background-size: contain;
+}
+.dash_2{
+ transform: rotate(45deg);
+}
+.dash_3{
+ transform: rotate(90deg);
+}
+.dash_4{
+ transform: rotate(135deg);
+}
+.canvas-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 1s;
+    transform-origin: center;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    position: absolute;
+    /*filter: saturate(0.5) brightness(1.25) contrast(0.85)*/
+}
+a {
+  color: white;
+  text-decoration: none;
+}
+a:hover {
+  color: lightblue;
+}
+
+body {
+  bottom: 0;
+  font-family: "Titillium Web", sans-serif;
+  color: white;
+  left: 0;
+  margin: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform-origin: 0px 0px;
+  overflow: hidden;
+}
+
+.container {
+  position: absolute;
+  background-color: black;
+  width: 100%;
+  height: 100%;
+}
+
+.input_video {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.grid{
+	position: absolute;
+	z-index: 1000;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+.grid_1{
+	top: 0;
+	left: 0;
+	width: 100vw;
+	background-image: url(img/grid-01.png);
+	height: 30px
+}
+.grid_2{
+	top: 0;
+	left: 0;
+	width: 30px;
+	background-image: url(img/grid-02.png);
+	height: 100vh
+}
+.grid_3{
+	top: 0;
+	right: 0;
+	left: auto;
+	width: 30px;
+	background-image: url(img/grid-03.png);
+	height: 100vh
+}
+.grid_4{
+	top: auto;
+	bottom: 0;
+	left: 0;
+	width: 100vw;
+	background-image: url(img/grid-04.png);
+	height: 30px
+}
+
+
+
+
+
+	</style>
+</head>
+<body>
+<script type="text/javascript">
+</script>
+<div class="container">
+        <div class="dot dot_center"></div>
+    <video class="input_video"></video>
+    	<div class="grid grid_1"></div>
+    	<div class="grid grid_2"></div>
+    	<div class="grid grid_3"></div>
+    	<div class="grid grid_4"></div>
+    	<div class="dash dash_1"></div>
+    	<div class="dash dash_2"></div>
+    	<div class="dash dash_3"></div>
+    	<div class="dash dash_4"></div>
+    <div class="canvas-container">
+        <div class="dot dot_nose"></div>
+    <canvas class="output_canvas" width="1280px" height="720px">
+    </canvas>
+    </div>
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="message">
+        Loading
+      </div>
+    </div>
+  </div>
+  <div class="control-panel">
+  </div>
+  <div class="int">start</div>
+  <div class="un_int">end</div>
+<!-- partial -->
+  <script type="module">
+import DeviceDetector from "https://cdn.skypack.dev/device-detector-js@2.2.10";
+// Usage: testSupport({client?: string, os?: string}[])
+// Client and os are regular expressions.
+// See: https://cdn.jsdelivr.net/npm/device-detector-js@2.2.10/README.md for
+// legal values for client and os
+testSupport([
+    { client: 'Chrome' },
+]);
+
+        function showWindowPosition() {
+            var xPos = window.screenX || window.screenLeft;
+            var yPos = window.screenY || window.screenTop;
+            return [xPos,yPos];
+        }
+function testSupport(supportedDevices) {
+    const deviceDetector = new DeviceDetector();
+    const detectedDevice = deviceDetector.parse(navigator.userAgent);
+    let isSupported = false;
+    for (const device of supportedDevices) {
+        if (device.client !== undefined) {
+            const re = new RegExp(`^${device.client}$`);
+            if (!re.test(detectedDevice.client.name)) {
+                continue;
+            }
+        }
+        if (device.os !== undefined) {
+            const re = new RegExp(`^${device.os}$`);
+            if (!re.test(detectedDevice.os.name)) {
+                continue;
+            }
+        }
+        isSupported = true;
+        break;
+    }
+    if (!isSupported) {
+        alert(`This demo, running on ${detectedDevice.client.name}/${detectedDevice.os.name}, ` +
+            `is not well supported at this time, continue at your own risk.`);
+    }
+}
+let popup1
+const controls = window;
+var downloaded = false
+const drawingUtils = window;
+const mpFaceMesh = window;
+const config = { locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@` +
+            `${mpFaceMesh.VERSION}/${file}`;
+    } };
+// Our input frames will come from here.
+const videoElement = document.getElementsByClassName('input_video')[0];
+const canvasElement = document.getElementsByClassName('output_canvas')[0];
+const controlsElement = document.getElementsByClassName('control-panel')[0];
+const canvasCtx = canvasElement.getContext('2d');
+/**
+ * Solution options.
+ */
+const solutionOptions = {
+    selfieMode: true,
+    enableFaceGeometry: false,
+    maxNumFaces: 1,
+    refineLandmarks: false,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+};
+// We'll add this to our control panel later, but we'll save it here so we can
+// call tick() each time the graph runs.
+const fpsControl = new controls.FPS();
+// Optimization: Turn off animated spinner after its hiding animation is done.
+const spinner = document.querySelector('.loading');
+spinner.ontransitionend = () => {
+    spinner.style.display = 'none';
+};
+function distanceBetweenPoints(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+function distanceBetweenPoints3D(x1, y1, z1, x2, y2, z2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dz = z2 - z1;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+var closed = false
+var tabSize
+var counter = 0
+var sizeset = false
+let lastChangeTime = Date.now();
+var int_activated = true
+var scale
+var mov_start = false
+var pre_mov_counter = 0
+var increasing = false
+var prev_ang = 0
+var prev_unit = 0
+var popup_array = Array(12)
+var popup_array_message = Array(12)
+var text_array = Array(8)
+var text_array_message = Array(8)
+var stuck_counter = 0
+var step_counter = 0
+                var a, b, c
+        var intersectX, intersectY
+        var instatant_popups=[]
+
+        var arrow_pos_array = [
+		 	[-95, 190],  // Bottom
+		    [-215, 120], // Left Bottom
+		    [-285, 0],   // Left
+		    [-285, -95], // Left
+		    [-215, -215],// Left top
+		    [-95, -285], // Top
+		    [0, -285],   // Top
+		    [120, -215], // Right Top
+		    [190, -95],  // Right
+		    [190, 0],    // Right
+		    [120, 120],  // Right Bottom
+		    [0, 190] 
+        ]
+        var size_array = [
+            [0.25*(498+10),98*0.25],
+            [0.25*819.5367593952087,819.5367593952086*0.25],
+            [0.25*(729+10),100*0.25],
+            [0.25*879.6408357960652,879.6408357960651*0.25],
+            [0.25*(889+10),100*0.25],
+            [0.25*886.004796826744,886.004796826744*0.25],
+            [0.25*(642+10),100*0.25],
+            [0.25*925.6027765731908,925.6027765731907*0.25],
+            [0.25*(498+10),98*0.25],
+        ];
+var pos_array = [
+    [   window.innerHeight * (525 / 1050) - size_array[0][0] / 2 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (930 / 1050) ], // Bottom
+    [   window.innerHeight * (310 / 1050) - size_array[1][0] + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (645 / 1050) + 100 + 29 + 29], // Left Bottom
+    [   window.innerHeight * (120 / 1050) - size_array[2][0] / 2 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (525 / 1050) - size_array[2][1] / 2 + 29], // Left
+    [   window.innerHeight * (310 / 1050) - size_array[3][0] + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (120 / 1050) - size_array[4][1] / 2], // Left top
+    [   window.innerHeight * (525 / 1050) - size_array[4][0] / 2 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (120 / 1050) - size_array[4][1] / 2], // Top
+    [   window.innerHeight * (645 / 1050) + 100 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (120 / 1050) - size_array[4][1] / 2], // Right Top
+    [   window.innerHeight * (800 / 1050) + 100 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (525 / 1050) - size_array[6][1] / 2], // Right
+    [   window.innerHeight * (645 / 1050) + 100 + ((window.innerWidth-window.innerHeight)/2), 
+        window.innerHeight * (645 / 1050) + 100 + 29 + 29], // Right Bottom
+];
+var canvasWidth
+var canvasHeight
+        var arrow_width = 0
+
+    function resizeCanvas() {
+
+        if(window.innerWidth>$('.canvas-container').width()){
+        	scale = $(window).width()/$('.canvas-container').width()
+        }
+        if(window.innerHeight>$('.canvas-container').height()){
+        	scale = $(window).height()/$('.canvas-container').height()
+        	console.log(scale)
+        }
+        // Determine scaling factors for both width and height
+        // var scaleWidth = viewportWidth / $('.canvas-container').width();
+        // var scaleHeight = viewportHeight / $('.canvas-container').height();
+
+        // // Use the smaller scaling factor to ensure the entire canvas fits within the viewport
+        // var scale = Math.min(scaleWidth, scaleHeight);
+
+        // // Apply the CSS transform to scale the canvas
+        $('.canvas-container').css({
+            'transform': 'translate(-50%,-50%) scale(' + scale + ')'
+        });
+    }
+
+    $(window).resize(resizeCanvas);
+
+    window.addEventListener('message', function(event) {
+      // Ensure the message comes from a trusted source
+        	console.log(event.data)
+      if (event.origin === window.location.origin && (isArrayAndFirstTwoNumbers(event.data))&&arrow_width == 0) {
+        for (var i = arrow_pos_array.length - 1; i >= 0; i--) {
+        	arrow_pos_array[i][0]=arrow_pos_array[i][0]/95*event.data[0]
+        	arrow_pos_array[i][1]=arrow_pos_array[i][1]/95*event.data[1]
+        	arrow_width = 1
+        }
+
+      }
+    }, false);
+function isArrayAndFirstTwoNumbers(data) {
+  if (Array.isArray(data) && data.length >= 2) {
+    return typeof data[0] === 'number' && typeof data[1] === 'number';
+  }
+  return false;
+}
+
+function onResults(results) {
+
+    counter ++ 
+    document.body.classList.add('loaded');
+    fpsControl.tick();
+    canvasCtx.save();
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+    if (results.multiFaceLandmarks) {
+    	if(results.multiFaceLandmarks.length == 0 ){
+                	stuck_counter  = stuck_counter+5
+                	if(stuck_counter > 10){
+                		for (var i = popup_array.length - 1; i >= 0; i--) {
+                			if(popup_array[i]){
+                				popup_array[i].close()
+                			}
+                		}
+                	}
+    	}
+        for (const landmarks of results.multiFaceLandmarks) {
+            if(!sizeset){
+                sizeset = true
+
+                canvasWidth = $('.canvas-container').outerWidth();
+                canvasHeight = $('.canvas-container').outerHeight();
+
+                // var scaleValue = 0.2 / distanceBetweenPoints(
+                //     results.multiFaceLandmarks[0][159].x, results.multiFaceLandmarks[0][159].y, 
+                //     results.multiFaceLandmarks[0][386].x, results.multiFaceLandmarks[0][386].y
+                // );
+
+                var translateX = canvasWidth * (0.5 - results.multiFaceLandmarks[0][1].x);
+                var translateY = canvasHeight * (0.35 - results.multiFaceLandmarks[0][1].y);
+
+                // translateX = Math.max(0, Math.min(translateX, canvasWidth - (canvasWidth * scaleValue)));
+                // translateY = Math.max(0, Math.min(translateY, canvasHeight - (canvasHeight * scaleValue)));
+
+                // $('.canvas-container').css({
+                //     'transform': 'translate(' + translateX + 'px ,' + translateY + 'px) scale(' + scaleValue + ')'
+                // });
+
+            }
+            //
+            if(int_activated) {
+
+
+		        const landmarks = results.multiFaceLandmarks[0];
+    
+                $('.dot_nose').css({
+                	'left':
+                    results.multiFaceLandmarks[0][1].x*$('.output_canvas').outerWidth()
+                    +($('.canvas-container').outerWidth()-$('.output_canvas').outerWidth())/2+'px', 
+                	'top':
+                    results.multiFaceLandmarks[0][1].y*$('.output_canvas').outerHeight()
+                    +($('.canvas-container').outerHeight()-$('.output_canvas').outerHeight())/2+'px'
+                })
+                $('.dot_center').css({
+                	'left':
+                    window.innerWidth / 2+'px', 
+                	'top':
+                    window.innerHeight / 2+'px'
+                })
+                var new_ang = getAngleBetweenPoints((results.multiFaceLandmarks[0][1].x*$('.output_canvas').outerWidth()+($('.canvas-container').outerWidth()-$('.output_canvas').outerWidth())/2)*scale+$('.canvas-container').offset().left,(results.multiFaceLandmarks[0][1].y*$('.output_canvas').outerHeight()+($('.canvas-container').outerHeight()-$('.output_canvas').outerHeight())/2)*scale+$('.canvas-container').offset().top, window.innerWidth / 2, window.innerHeight / 2)
+                if(new_ang>prev_ang){
+                	if(increasing){pre_mov_counter++}else{pre_mov_counter = 0}
+                	increasing = true
+                }else{
+                	if(!increasing){pre_mov_counter++}else{pre_mov_counter = 0}
+                	increasing = false
+                }
+                prev_ang = new_ang
+                if((counter%10)==0){
+                    for (var i = text_array.length - 1; i >= 0; i--) {
+                        if(text_array[i]){
+                            text_array[i].postMessage(text_array_message[i], '*');
+                        }
+                    }
+                    for (var i = popup_array.length - 1; i >= 0; i--) {
+                        if(popup_array[i]){
+                            popup_array[i].postMessage(popup_array_message[i], '*');
+                        }
+                    }
+                }
+                if(pre_mov_counter > 10){
+                	stuck_counter = 0
+                	if(increasing){
+                		if((new_ang%30)<10){
+                			var new_unit = Math.floor(new_ang/30)
+	                			if(!popup_array[new_unit]){
+	                				popup_array[new_unit] = window.open("arrow.html" , '_blank_' + Date.now(), "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0")
+                                popup_array_message[new_unit] = Math.floor(new_ang/30)
+	                			}
+	                			for (var i = popup_array.length - 1; i >= 0; i--) {
+	                				if(popup_array[i]){
+										popup_array[i].moveTo(window.innerWidth/2 + arrow_pos_array[i][0],window.innerHeight/2 + arrow_pos_array[i][1]+tabSize)
+	                				}
+	                			}
+                		}
+	                	if((new_ang%45)<10){
+	                		if(step_counter == 0){step_counter = counter}
+	                		var new_unit_text = Math.floor(new_ang/45)    
+	                		a = Math.floor(size_array[new_unit_text][0]);
+	                        b = Math.floor(size_array[new_unit_text][1]) + 29; 
+	                        var pre_a = Math.random()*300+100
+	                        var pre_b = Math.random()*300+100 
+	                        intersectX = a
+	                        intersectY = b 
+
+	                        if(!text_array[new_unit_text]){
+    	                        text_array[new_unit_text] = window.open("popup_web.html", "_blank", "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width="+pre_a+", height="+pre_b+", top=0,left=0")
+    	                        text_array[new_unit_text].resizeTo(a , b)
+		                        text_array[new_unit_text].moveTo(pos_array[new_unit_text][0],pos_array[new_unit_text][1]);
+                                text_array_message[new_unit_text] = [-1*pos_array[new_unit_text][0], -1*pos_array[new_unit_text][1]+29, a , b, Math.floor(new_ang/45),canvasWidth,canvasHeight,new_unit_text];
+                                console.log(text_array_message[new_unit_text])
+		                        if(step_counter>0 && counter - step_counter == 1){
+		                            instatant_popups = []
+			                        	step_counter = 0
+		                        }
+    	                    }
+	                	}else{
+
+	                            for (var i = instatant_popups.length - 1; i >= 0; i--) {
+	                                instatant_popups[i].close()
+	                            }
+	                	}
+            		}
+
+            	}else{
+                	stuck_counter++
+                	if(stuck_counter > 35){
+                		console.log('!!!!!')
+                		for (var i = popup_array.length - 1; i >= 0; i--) {
+                			if(popup_array[i]){
+                				popup_array[i].close()
+                				popup_array[i] = undefined
+                			}
+                		}
+                		for (var i = text_array.length - 1; i >= 0; i--) {
+                			if(text_array[i]){
+	                				text_array[i].close()
+	                				text_array[i] = undefined
+	                			}
+                		}
+
+                        for (var i = instatant_popups.length - 1; i >= 0; i--) {
+                            instatant_popups[i].close()
+                        }
+                	}
+            	}
+        	}
+        }
+    }
+    canvasCtx.restore();
+}
+function getAngleBetweenDotAndScreenCenter() {
+    const dot = document.querySelector('.dot');
+    
+    if (!dot) {
+        console.error("No element with class '.dot' found.");
+        return;
+    }
+
+    // Get the position of the '.dot' element
+    const dotRect = dot.getBoundingClientRect();
+    const dotX = dotRect.left + dotRect.width / 2; // X position of the center of '.dot'
+    const dotY = dotRect.top + dotRect.height / 2; // Y position of the center of '.dot'
+
+    // Get the center of the screen
+    const screenCenterX = window.innerWidth / 2;
+    const screenCenterY = window.innerHeight / 2;
+
+    // Calculate the difference between positions
+    const deltaX = dotX - screenCenterX;
+    const deltaY = dotY - screenCenterY;
+
+    // Calculate the angle using Math.atan2, converting from radians to degrees
+    const angleInRadians = Math.atan2(deltaY, deltaX);
+    const angleInDegrees = angleInRadians * (180 / Math.PI);
+
+    return angleInDegrees;
+}
+function getAngleBetweenPoints(x1, y1, x2, y2) {
+    // Calculate the differences in x and y
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    // Calculate the angle in radians
+    const angleRad = Math.atan2(dy, dx);
+
+    // Convert radians to degrees if needed
+    const angleDeg = (angleRad * (180 / Math.PI)+180+270)%360;
+
+    return angleDeg;
+}
+const faceMesh = new mpFaceMesh.FaceMesh(config);
+faceMesh.setOptions(solutionOptions);
+faceMesh.onResults(onResults);
+// Helper function to get the world position (including CSS transforms)
+function getWorldPosition(element) {
+    let x = 0;
+    let y = 0;
+    let currentElement = element;
+
+    while (currentElement) {
+        const rect = currentElement.getBoundingClientRect();
+        
+        // Add the current element's position relative to its parent
+        x += rect.left;
+        y += rect.top;
+
+        // Get the computed style to check for transforms
+        const style = getComputedStyle(currentElement);
+        const transform = style.transform;
+
+        // If the element has a transform property, we need to parse and apply it
+        if (transform && transform !== 'none') {
+            const matrix = new DOMMatrix(transform);
+            x = matrix.a * x + matrix.c * y + matrix.e;
+            y = matrix.b * x + matrix.d * y + matrix.f;
+        }
+
+        // Move up to the parent element and repeat the process
+        currentElement = currentElement.offsetParent;
+    }
+
+    return { x, y };
+}
+
+// Function to calculate the angle between two world positions
+function getAngleBetweenDivs(div1Selector, div2Selector) {
+    const div1 = document.querySelector(div1Selector);
+    const div2 = document.querySelector(div2Selector);
+    
+    if (!div1 || !div2) {
+        console.error("One or both of the elements not found.");
+        return;
+    }
+
+    // Get the world positions of both divs
+    const div1WorldPos = getWorldPosition(div1);
+    const div2WorldPos = getWorldPosition(div2);
+    console.log(div1WorldPos)
+    console.log(div2WorldPos)
+
+    // Calculate the differences in world positions
+    const deltaX = div2WorldPos.x - div1WorldPos.x;
+    const deltaY = div2WorldPos.y - div1WorldPos.y;
+
+    // Calculate the angle using Math.atan2, converting from radians to degrees
+    const angleInRadians = Math.atan2(deltaY, deltaX);
+    const angleInDegrees = angleInRadians * (180 / Math.PI);
+
+    return angleInDegrees;
+}
+
+function detectTabSize() {
+	var screenHeight = window.screen.height;
+	var windowHeight = window.innerHeight;
+	return screenHeight - windowHeight;
+}
+
+
+        var unit = 10;
+        var whole_x = 30*2;
+        var whole_y = 30*2;
+
+
+        function getRandomInt(max) {
+            return Math.floor(Math.random() * max);
+        }
+function easeInCubic(x){
+    return x * x * x;
+}
+
+
+
+
+
+
+
+
+new controls
+  .ControlPanel(controlsElement, solutionOptions)
+  .add([
+    new controls.StaticText({ title: 'MediaPipe Face Mesh' }),
+    fpsControl,
+    new controls.Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
+    new controls.SourcePicker({
+      onFrame: async (input, size) => {
+        const aspect = size.height / size.width;
+        let width, height;
+        if (window.innerWidth > window.innerHeight) {
+          height = window.innerHeight;
+          width = height / aspect;
+        } else {
+          width = window.innerWidth;
+          height = width * aspect;
+        }
+        canvasElement.width = width;
+        canvasElement.height = height;
+        await faceMesh.send({ image: input });
+      },
+    }),
+    new controls.Slider({
+      title: 'Max Number of Faces',
+      field: 'maxNumFaces',
+      range: [1, 4],
+      step: 1,
+    }),
+    new controls.Toggle({ title: 'Refine Landmarks', field: 'refineLandmarks' }),
+    new controls.Slider({
+      title: 'Min Detection Confidence',
+      field: 'minDetectionConfidence',
+      range: [0, 1],
+      step: 0.01,
+    }),
+    new controls.Slider({
+      title: 'Min Tracking Confidence',
+      field: 'minTrackingConfidence',
+      range: [0, 1],
+      step: 0.01,
+    }),
+  ])
+  .on((x) => {
+    const options = x;
+    videoElement.classList.toggle('selfie', options.selfieMode);
+    faceMesh.setOptions(options);
+  }); // Make sure this bracket closes everything correctly
+
+
+
+    // Key press navigation
+    const keyMap = {
+      q: 'http://localhost:8000/index1.html',
+      w: 'http://localhost:8000/index2.html',
+      e: 'http://localhost:8000/index3.html',
+      a: 'http://localhost:8000/index4.html',
+      s: 'http://localhost:8000/index5.html',
+      d: 'http://localhost:8000/index6.html',
+    };
+
+    document.addEventListener('keydown', (e) => {
+      const url = keyMap[e.key.toLowerCase()];
+      if (url) {
+        window.location.href = url;
+      }
+    });
+
+    $(document).ready(function(){
+        tabSize = detectTabSize();
+        console.log(tabSize)
+
+// pos_array = [
+//     [
+//     	window.innerWidth * 1/2 - size_array[0][0] / 2, 
+//     	window.innerHeight * 1/2 + 310 - size_array[0][1] / 2  + tabSize
+//     ], // Bottom
+//     [
+//     	window.innerWidth * 1/2-120 - size_array[1][0], 
+//     	window.innerHeight * 1/2+120 + tabSize
+//     ], // Left Bottom
+//     [
+//     	window.innerWidth * 1/2-310 - size_array[2][0] / 2, 
+//     	window.innerHeight * 1/2 - size_array[2][1] / 2 + tabSize
+//     ], // Left
+//     [
+//     	window.innerWidth * 1/2-120 - size_array[3][0], 
+//     	window.innerHeight * 1/2-120 + tabSize
+//     ], // Left top
+//     [
+//     	window.innerWidth * 1/2  - size_array[4][0] / 2, 
+//     	window.innerHeight * 1/2-310 - size_array[4][1] / 2 + tabSize
+//     ], // Top
+//     [
+//     	window.innerWidth * 1/2 + 120, 
+//     	window.innerHeight * 1/2 - 120 + tabSize
+//     ], // Right Top
+//     [
+//     	window.innerWidth * 1/2+310 - size_array[6][0] / 2, 
+//     	window.innerHeight * 1/2 - size_array[6][1] / 2 + tabSize
+//     ], // Right
+//     [	
+//     	window.innerWidth * 1/2+310 , 
+//     	window.innerHeight * 1/2+310 + tabSize
+//     ], // Right Bottom
+// ];
+        $('.int').click(function(){
+            console.log((popup1))
+            if(!popup1){
+                int_activated = true
+                $('body').addClass('int_activated')
+                        popup1 = window.open('popup3.html', 'fly1', 'width='+window.innerHeight*0.16+',height='+window.innerHeight*0.25+',scrollbars=yes,resizable=yes');
+            }
+        })
+        $('.un_int').click(function(){
+            console.log((popup1))
+            if(popup1){
+                console.log('!!')
+                int_activated = false
+                $('body').removeClass('int_activated')
+                popup1.close()
+                popup1 = undefined
+            }
+        })
+        resizeCanvas()
+        setTimeout(function(){
+        	resizeCanvas()
+        },1000)
+    })
+</script>
+</body>
+</html>

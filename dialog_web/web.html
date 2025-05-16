@@ -23,7 +23,7 @@
         position: absolute;
         width: 10px;
         height: 10px;
-        background-color: red;
+        /*background-color: red;*/
         z-index: 100
     }
     .text{
@@ -419,7 +419,7 @@ function onResults(results) {
     if (results.multiFaceLandmarks) {
     	if(results.multiFaceLandmarks.length == 0 ){
                 	stuck_counter  = stuck_counter+5
-                	if(stuck_counter > 30){
+                	if(stuck_counter > 10){
                 		for (var i = popup_array.length - 1; i >= 0; i--) {
                 			if(popup_array[i]){
                 				popup_array[i].close()
