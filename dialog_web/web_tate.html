@@ -498,6 +498,7 @@ function onResults(results) {
                 			var new_unit = Math.floor(new_ang/30)
 	                			if(!popup_array[new_unit]){
 	                				popup_array[new_unit] = window.open("arrow.html" , '_blank_' + Date.now(), "toolbar=no,scrollbars=no,resizable=yes,status=no,menubar=no,width=50, height=50, top=0,left=0")
+                                text_array[new_unit_text].resizeTo(50 , 50)
                                 popup_array_message[new_unit] = Math.floor(new_ang/30)
 	                			}
 	                			for (var i = popup_array.length - 1; i >= 0; i--) {
