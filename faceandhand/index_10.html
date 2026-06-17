@@ -26,20 +26,9 @@
       position: absolute;
       transform: translateX(-50%) translateY(-50%);
     }
-    .tab { height: 40px; position: absolute; background-repeat: no-repeat; z-index: 2; }
-    .tab_l { width: 50%; left: 0; top: 0; background-size: auto 100%; background-position: left; background-image: url(img/tab_1.png); }
-    .tab_r { width: 50%; right: 0; top: 0; background-size: auto 100%; background-position: right; background-image: url(img/tab_3.png); }
-    .tab_c { width: 100%; top: 0; background-size: auto 100%; background-position: center; background-color: white; z-index: 1; background-image: url(img/tab_2.png); }
-    .ex .tab { height: 30px; }
-    .ex .tab_l { background-image: url(img/tab-01.png); }
-    .ex .tab_r { background-image: url(img/tab-02.png); }
-    .ex { position: absolute; width: 200px; height: 200px; right: 10px; top: 50px; background-size: auto 100%; }
-    .ex_1 { background-image: url(img/img_1.jpg); right: 210px; }
-    .ex_2 { background-image: url(img/img_2.jpg); top: 260px; right: 210px; }
-    .ex_3 { background-image: url(img/img_3.jpg); top: 260px; }
     #debug {
       position: fixed; top: 8px; left: 8px;
-      background: rgba(0,0,0,0.7); color: #0f0;
+      background: rgba(0,0,0,0.75); color: #0f0;
       font: 11px monospace; padding: 6px 10px;
       border-radius: 6px; z-index: 20000;
       pointer-events: none; white-space: pre; line-height: 1.6;
@@ -52,14 +41,14 @@
       <video class="input_video4"></video>
       <canvas class="output4" width="1920px" height="1440px"></canvas>
       <div class="dot_wrapper">
-        <div class='dot dot_lefteye'  style="background:red"></div>
-        <div class='dot dot_righteye' style="background:blue"></div>
+        <div class='dot dot_lefteye'   style="background:red"></div>
+        <div class='dot dot_righteye'  style="background:blue"></div>
         <div class='dot dot_leftfinger'  style="background:lime"></div>
         <div class='dot dot_rightfinger' style="background:yellow"></div>
       </div>
     </div>
     <div class="loading"><div class="spinner"></div></div>
-    <div style="visibility: hidden" class="control4"></div>
+    <div style="visibility:hidden" class="control4"></div>
   </div>
   <div id="debug">loading...</div>
 
@@ -72,7 +61,7 @@
     };
     document.addEventListener('keydown', e => { const u=keyMap[e.key.toLowerCase()]; if(u) location.href=u; });
 
-    var popup_pre_1_t = 0, popup_pre_2_t = 0;
+    var popup_pre_1_t=0, popup_pre_2_t=0;
     var popup_1_l=10, popup_1_t=10, popup_1_h=10;
     var popup_2_l=10, popup_2_t=10, popup_2_h=10;
 
@@ -82,7 +71,7 @@
     const ctx4   = out4.getContext('2d');
 
     var c_width, c_height;
-    $(document).ready(function () {
+    $(document).ready(function(){
       c_width  = $('.output4').outerWidth();
       c_height = $('.output4').outerHeight();
       $('.dot_wrapper').css({ width: c_width+'px', height: c_height+'px' });
@@ -92,39 +81,34 @@
     const spinner = document.querySelector('.loading');
     spinner.ontransitionend = () => { spinner.style.display='none'; };
 
-    // tabsize: original logic that WORKED for popup positioning
-    var tabsize = window.screen.height - window.innerHeight - 80;
+    // ── screen offset: converts viewport px → screen px for window.moveTo ──
+    // On Windows Chrome:
+    //   screenX = left edge of browser window in screen coords
+    //   screenY = top edge of browser window in screen coords  
+    //   toolbar height = outerHeight - innerHeight
+    // viewport pixel (from .offset()) + screenX/screenY+toolbarH = screen pixel
+    function screenOffsetX() { return window.screenX; }
+    function screenOffsetY() { return window.screenY + (window.outerHeight - window.innerHeight); }
 
     var standard, long_standard = 0;
     var popup_array = Array(5);
     var counter = 0;
     var right_activated = false, left_activated = false;
 
-    // ── zoom state ───────────────────────────────────────────────────────
-    var currentZoom = 1, currentTx = 0.5, currentTy = 0.5;
-    const ZOOM_LERP = 0.08, TARGET_FILL = 0.35;
+    // zoom state
+    var currentZoom=1, currentTx=0.5, currentTy=0.5;
+    const ZOOM_LERP=0.08, TARGET_FILL=0.35;
 
     function lmToWrapper(lx, ly) {
-      // Convert landmark [0-1] to dot_wrapper px
-      // dot_wrapper matches canvas display size, centered in viewport
-      // We need position relative to wrapper's top-left
-      const CW = out4.width, CH = out4.height; // internal canvas res (1920x1440)
-      const dispW = c_width, dispH = c_height;  // CSS display size
-
-      const sx = dispW / CW;
-      const sy = dispH / CH;
-
-      const rawX = (lx * CW - currentTx * CW) * currentZoom + CW / 2;
-      const rawY = (ly * CH - currentTy * CH) * currentZoom + CH / 2;
-
-      return {
-        x: rawX * sx,
-        y: rawY * sy,
-      };
+      const CW=out4.width, CH=out4.height;
+      const sx=c_width/CW, sy=c_height/CH;
+      const rawX=(lx*CW - currentTx*CW)*currentZoom + CW/2;
+      const rawY=(ly*CH - currentTy*CH)*currentZoom + CH/2;
+      return { x: rawX*sx, y: rawY*sy };
     }
 
-    function removeElements(lm, els) { for(const e of els) delete lm[e]; }
-    function removeLandmarks(res) {
+    function removeElements(lm,els){for(const e of els)delete lm[e];}
+    function removeLandmarks(res){
       if(res.poseLandmarks)
         removeElements(res.poseLandmarks,[0,1,2,3,4,5,6,7,8,9,10,15,16,17,18,19,20,21,22]);
     }
@@ -135,57 +119,57 @@
         const fl = res.faceLandmarks;
 
         const faceH = fl[152].y - fl[10].y;
-        const targZoom = faceH > 0.01 ? TARGET_FILL / faceH : 1;
-        currentZoom = currentZoom + (Math.min(targZoom, 4) - currentZoom) * ZOOM_LERP;
+        const targZoom = faceH > 0.01 ? TARGET_FILL/faceH : 1;
+        currentZoom = currentZoom + (Math.min(targZoom,4)-currentZoom)*ZOOM_LERP;
         currentZoom = Math.max(0.8, Math.min(4, currentZoom));
+        currentTx = Math.max(0.15, Math.min(0.85, currentTx+(fl[1].x-currentTx)*ZOOM_LERP));
+        currentTy = Math.max(0.15, Math.min(0.85, currentTy+(fl[1].y-currentTy)*ZOOM_LERP));
 
-        currentTx = currentTx + (fl[1].x - currentTx) * ZOOM_LERP;
-        currentTy = currentTy + (fl[1].y - currentTy) * ZOOM_LERP;
-        // clamp so face stays on canvas
-        currentTx = Math.max(0.15, Math.min(0.85, currentTx));
-        currentTy = Math.max(0.15, Math.min(0.85, currentTy));
-
-        standard = get_dis(fl[386].x,fl[374].x,fl[386].y,fl[374].y) * 3;
+        standard = get_dis(fl[386].x,fl[374].x,fl[386].y,fl[374].y)*3;
         if (!long_standard)
           long_standard = get_dis(fl[10].x,fl[152].x,fl[10].y,fl[152].y);
 
         const leye = lmToWrapper(fl[390].x, fl[390].y);
         const reye = lmToWrapper(fl[163].x, fl[163].y);
-        $('.dot_lefteye').css({ left: leye.x+'px', top: leye.y+'px' });
-        $('.dot_righteye').css({ left: reye.x+'px', top: reye.y+'px' });
+        $('.dot_lefteye').css({left:leye.x+'px', top:leye.y+'px'});
+        $('.dot_righteye').css({left:reye.x+'px', top:reye.y+'px'});
 
+        // Debug: show exactly what moveTo will receive
+        const ox = screenOffsetX(), oy = screenOffsetY();
+        const eyeL = $('.dot_lefteye').offset().left;
+        const eyeT = $('.dot_lefteye').offset().top;
         document.getElementById('debug').textContent =
-          `zoom: ${currentZoom.toFixed(2)}  tx: ${currentTx.toFixed(3)}  ty: ${currentTy.toFixed(3)}\n`+
-          `leye wrapper: ${leye.x.toFixed(0)}, ${leye.y.toFixed(0)}\n`+
-          `leye offset:  ${($('.dot_lefteye').offset().left).toFixed(0)}, ${($('.dot_lefteye').offset().top).toFixed(0)}\n`+
-          `tabsize: ${tabsize}   screenH: ${window.screen.height}   innerH: ${window.innerHeight}\n`+
-          `popup target: ${($('.dot_lefteye').offset().left).toFixed(0)}, ${($('.dot_lefteye').offset().top + tabsize).toFixed(0)}`;
+          `zoom: ${currentZoom.toFixed(2)}  tx:${currentTx.toFixed(3)} ty:${currentTy.toFixed(3)}\n`+
+          `screenX/Y:    ${window.screenX}, ${window.screenY}\n`+
+          `outerH/innerH: ${window.outerHeight} / ${window.innerHeight}  toolbar:${window.outerHeight-window.innerHeight}\n`+
+          `screenOffsetX: ${ox}   screenOffsetY: ${oy}\n`+
+          `leye .offset: ${eyeL.toFixed(0)}, ${eyeT.toFixed(0)}\n`+
+          `moveTo target: ${(ox+eyeL).toFixed(0)}, ${(oy+eyeT).toFixed(0)}\n`+
+          `screen.w/h:   ${screen.width} x ${screen.height}`;
       }
 
       if (res.leftHandLandmarks) {
-        const lf = res.leftHandLandmarks[7];
-        const p = lmToWrapper(lf.x, lf.y);
-        $('.dot_leftfinger').css({ left: p.x+'px', top: p.y+'px' });
+        const p=lmToWrapper(res.leftHandLandmarks[7].x, res.leftHandLandmarks[7].y);
+        $('.dot_leftfinger').css({left:p.x+'px', top:p.y+'px'});
       }
       if (res.rightHandLandmarks) {
-        const rf = res.rightHandLandmarks[7];
-        const p = lmToWrapper(rf.x, rf.y);
-        $('.dot_rightfinger').css({ left: p.x+'px', top: p.y+'px' });
+        const p=lmToWrapper(res.rightHandLandmarks[7].x, res.rightHandLandmarks[7].y);
+        $('.dot_rightfinger').css({left:p.x+'px', top:p.y+'px'});
       }
 
       if (res.faceLandmarks && res.leftHandLandmarks) {
         const fl=res.faceLandmarks, lh=res.leftHandLandmarks;
-        if (get_dis(fl[390].x,lh[7].x,fl[390].y,lh[7].y) < standard && !right_activated) {
-          right_activated = true;
-          popup_pre_1_t = $('.dot_leftfinger').offset().top;
+        if (get_dis(fl[390].x,lh[7].x,fl[390].y,lh[7].y)<standard && !right_activated) {
+          right_activated=true;
+          popup_pre_1_t=$('.dot_leftfinger').offset().top;
           openwindow('right');
         }
       }
       if (res.faceLandmarks && res.rightHandLandmarks) {
         const fl=res.faceLandmarks, rh=res.rightHandLandmarks;
-        if (get_dis(fl[163].x,rh[7].x,fl[163].y,rh[7].y) < standard && !left_activated) {
-          left_activated = true;
-          popup_pre_2_t = $('.dot_rightfinger').offset().top;
+        if (get_dis(fl[163].x,rh[7].x,fl[163].y,rh[7].y)<standard && !left_activated) {
+          left_activated=true;
+          popup_pre_2_t=$('.dot_rightfinger').offset().top;
           openwindow('left');
         }
       }
@@ -194,63 +178,64 @@
       removeLandmarks(res);
       fpsControl.tick();
 
-      // Draw with zoom/pan
-      const CW = out4.width, CH = out4.height;
+      const CW=out4.width, CH=out4.height;
       ctx4.save();
       ctx4.clearRect(0,0,CW,CH);
-      ctx4.fillStyle='#000';
-      ctx4.fillRect(0,0,CW,CH);
-      ctx4.translate(CW/2, CH/2);
-      ctx4.scale(currentZoom, currentZoom);
-      ctx4.translate(-currentTx*CW, -currentTy*CH);
-      ctx4.drawImage(res.image, 0, 0, CW, CH);
+      ctx4.fillStyle='#000'; ctx4.fillRect(0,0,CW,CH);
+      ctx4.translate(CW/2,CH/2);
+      ctx4.scale(currentZoom,currentZoom);
+      ctx4.translate(-currentTx*CW,-currentTy*CH);
+      ctx4.drawImage(res.image,0,0,CW,CH);
       ctx4.restore();
     }
 
     function openwindow(dir) {
-      const idx = counter++;
-      popup_array[idx] = window.open("popup.html","","scrollbar");
+      const idx=counter++;
+      popup_array[idx]=window.open("popup.html","","scrollbar");
       popup_array[idx].resizeTo(100,100);
-      movewindow(idx, dir, 0, Math.floor(Math.random()*5)+1);
-      setTimeout(()=>{ if(popup_array[idx]&&!popup_array[idx].closed) popup_array[idx].close(); }, 15000);
+      movewindow(idx,dir,0,Math.floor(Math.random()*5)+1);
+      setTimeout(()=>{ if(popup_array[idx]&&!popup_array[idx].closed) popup_array[idx].close(); },15000);
     }
 
-    // ORIGINAL popup logic — kept exactly as it was, this worked
-    function movewindow(index, dir, counter, random) {
-      counter++;
+    function movewindow(index, dir, cnt, random) {
+      cnt++;
+      const ox=screenOffsetX(), oy=screenOffsetY();
+
       if (right_activated && dir==='right') {
         popup_1_l = Math.min($('.dot_lefteye').offset().left, $('.dot_leftfinger').offset().left);
         popup_1_t = $('.dot_lefteye').offset().top;
-        popup_array[index].moveTo(popup_1_l, popup_1_t + tabsize);
-        popup_array[index].resizeTo(100, 150 + counter*random*6);
         popup_1_h = $('.dot_leftfinger').offset().top - popup_pre_1_t;
+        popup_array[index].moveTo(ox+popup_1_l, oy+popup_1_t);
+        popup_array[index].resizeTo(100, 150+cnt*random*6);
       }
       if (left_activated && dir==='left') {
         popup_2_l = Math.min($('.dot_righteye').offset().left, $('.dot_rightfinger').offset().left);
         popup_2_t = $('.dot_righteye').offset().top;
-        popup_array[index].moveTo(popup_2_l, popup_2_t + tabsize);
-        popup_array[index].resizeTo(100, 150 + counter*random*6);
         popup_2_h = $('.dot_rightfinger').offset().top - popup_pre_2_t;
+        popup_array[index].moveTo(ox+popup_2_l, oy+popup_2_t);
+        popup_array[index].resizeTo(100, 150+cnt*random*6);
       }
-      setTimeout(function() {
+
+      setTimeout(function(){
         if (right_activated && dir==='right') {
-          if (popup_1_h < 0.1*window.innerHeight) movewindow(index,dir,counter,random);
-          else { right_activated=false; shrink_window(index,popup_1_l,popup_1_t,0,150+counter*random*6,random); }
+          if (popup_1_h < 0.1*window.innerHeight) movewindow(index,dir,cnt,random);
+          else { right_activated=false; shrink_window(index,popup_1_l,popup_1_t,0,150+cnt*random*6,random); }
         }
         if (left_activated && dir==='left') {
-          if (popup_2_h < 0.1*window.innerHeight*0.5) movewindow(index,dir,counter,random);
-          else { left_activated=false; shrink_window(index,popup_2_l,popup_2_t,0,150+counter*random*6,random); }
+          if (popup_2_h < 0.1*window.innerHeight*0.5) movewindow(index,dir,cnt,random);
+          else { left_activated=false; shrink_window(index,popup_2_l,popup_2_t,0,150+cnt*random*6,random); }
         }
       }, 50);
     }
 
-    function shrink_window(index, left, top, counter, height, random) {
-      counter++;
-      if (counter < window.innerHeight*0.1)
-        popup_array[index].resizeTo(100, random%3===0 ? height+counter*2 : height+counter);
-      popup_array[index].moveTo(left, top + tabsize + counter*10);
-      setTimeout(function() {
-        if (top < window.innerHeight*0.7) shrink_window(index,left,top,counter,height,random);
+    function shrink_window(index, left, top, cnt, height, random) {
+      cnt++;
+      const ox=screenOffsetX(), oy=screenOffsetY();
+      if (cnt < window.innerHeight*0.1)
+        popup_array[index].resizeTo(100, random%3===0 ? height+cnt*2 : height+cnt);
+      popup_array[index].moveTo(ox+left, oy+top+cnt*10);
+      setTimeout(function(){
+        if (top < window.innerHeight*0.7) shrink_window(index,left,top,cnt,height,random);
       });
     }
 
@@ -260,7 +245,7 @@
     holistic.onResults(onResultsHolistic);
 
     const camera = new Camera(video4, {
-      onFrame: async ()=>{ await holistic.send({image:video4}); },
+      onFrame: async()=>{ await holistic.send({image:video4}); },
       width: $('video').outerWidth(),
       height: $('video').outerHeight()
     });
