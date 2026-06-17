@@ -160,6 +160,15 @@
     var right_activated = false;
     var left_activated  = false;
 
+    // ── screen offset helper ─────────────────────────────────────────────
+    // Converts viewport-relative px to screen-absolute px for window.moveTo()
+    function getScreenOffset() {
+      return {
+        x: window.screenX,
+        y: window.screenY + (window.outerHeight - window.innerHeight)
+      };
+    }
+
     function removeElements(landmarks, elements) {
       for (const el of elements) delete landmarks[el];
     }
@@ -172,14 +181,7 @@
 
     // Convert a landmark [0-1] coordinate to zoomed dot-wrapper pixel
     function landmarkToZoomedPx(lx, ly) {
-      // apply the same transform we use on the canvas
-      // zoomed canvas: scale(zoom) then translate(tx*w, ty*h) relative to center
       const w = c_width, h = c_height;
-      // transform: origin at center, translate to face center, then scale
-      // px_raw = lx*w, py_raw = ly*h
-      // after transform: pivot around canvas center
-      //   x' = (lx*w - cx)*zoom + w/2  where cx = currentTx*w (face center in raw px)
-      //   y' = (ly*h - cy)*zoom + h/2
       const cx = currentTx * w;
       const cy = currentTy * h;
       return {
@@ -235,7 +237,7 @@
         $('.dot_rightfinger').css({ left: rpos.x + 'px', top: rpos.y + 'px' });
       }
 
-      // ── 3. Gesture triggers (same logic, landmark coords unchanged) ──
+      // ── 3. Gesture triggers ──────────────────────────────────────────
       if (results.faceLandmarks && results.leftHandLandmarks) {
         const fl = results.faceLandmarks;
         const lh = results.leftHandLandmarks;
@@ -273,7 +275,7 @@
       canvasCtx4.fillRect(0, 0, w, h);
 
       // apply zoom: pivot around face center
-      const cx = currentTx * w;  // face center in raw canvas px
+      const cx = currentTx * w;
       const cy = currentTy * h;
       canvasCtx4.translate(w / 2, h / 2);
       canvasCtx4.scale(currentZoom, currentZoom);
@@ -283,8 +285,6 @@
 
       canvasCtx4.restore();
     }
-
-    var tabsize = window.screen.height - window.innerHeight - 80;
 
     function openwindow(dir) {
       const index = counter;
@@ -301,12 +301,14 @@
 
     function movewindow(index, dir, counter, random) {
       counter++;
+      const off = getScreenOffset();
+
       if (right_activated && dir === 'right') {
         popup_1_l = Math.min($('.dot_lefteye').offset().left, $('.dot_leftfinger').offset().left);
         popup_1_t = $('.dot_lefteye').offset().top;
         popup_1_w = Math.abs($('.dot_lefteye').offset().left - $('.dot_leftfinger').offset().left);
         popup_1_h = $('.dot_leftfinger').offset().top - popup_pre_1_t;
-        popup_array[index].moveTo(popup_1_l, popup_1_t + tabsize);
+        popup_array[index].moveTo(off.x + popup_1_l, off.y + popup_1_t);
         popup_array[index].resizeTo(100, 150 + counter * random * 6);
       }
       if (left_activated && dir === 'left') {
@@ -314,9 +316,10 @@
         popup_2_t = $('.dot_righteye').offset().top;
         popup_2_w = Math.abs($('.dot_righteye').offset().left - $('.dot_rightfinger').offset().left);
         popup_2_h = $('.dot_rightfinger').offset().top - popup_pre_2_t;
-        popup_array[index].moveTo(popup_2_l, popup_2_t + tabsize);
+        popup_array[index].moveTo(off.x + popup_2_l, off.y + popup_2_t);
         popup_array[index].resizeTo(100, 150 + counter * random * 6);
       }
+
       setTimeout(function () {
         if (right_activated && dir === 'right') {
           if (popup_1_h < (0.1 * window.innerHeight)) {
@@ -339,10 +342,11 @@
 
     function shrink_window(index, left, top, counter, height, random) {
       counter++;
+      const off = getScreenOffset();
       if (counter < window.innerHeight * 0.1) {
         popup_array[index].resizeTo(100, random % 3 === 0 ? height + counter * 2 : height + counter);
       }
-      popup_array[index].moveTo(left, top + tabsize + counter * 10);
+      popup_array[index].moveTo(off.x + left, off.y + top + counter * 10);
       setTimeout(function () {
         if (top < window.innerHeight * 0.7) {
           shrink_window(index, left, top, counter, height, random);
