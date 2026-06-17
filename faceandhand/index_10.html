@@ -283,75 +283,69 @@
       };
     }
 
-    function movewindow(index, dir, cnt, random) {
-      cnt++;
+ function movewindow(index, dir, cnt, random) {
+  cnt++;
 
-      if (!popup_array[index] || popup_array[index].closed) return;
+  if (!popup_array[index] || popup_array[index].closed) return;
 
-      const finger =
-        dir === 'right'
-          ? $('.dot_leftfinger').offset()
-          : $('.dot_rightfinger').offset();
+  const finger =
+    dir === 'right'
+      ? $('.dot_leftfinger').offset()
+      : $('.dot_rightfinger').offset();
 
-      const eye =
-        dir === 'right'
-          ? $('.dot_lefteye').offset()
-          : $('.dot_righteye').offset();
+  const eye =
+    dir === 'right'
+      ? $('.dot_lefteye').offset()
+      : $('.dot_righteye').offset();
 
-      if (!finger || !eye) return;
+  if (!finger || !eye) return;
 
-      const left = Math.min(eye.left, finger.left);
+  const left = Math.min(eye.left, finger.left);
+  const top = finger.top;
 
-      // This is the important fix:
-      // use fingertip Y while dragging, not eye Y.
-      const top = finger.top;
+  const startTop = dir === 'right' ? popup_pre_1_t : popup_pre_2_t;
+  const dragged = finger.top - startTop;
 
-      const startTop = dir === 'right' ? popup_pre_1_t : popup_pre_2_t;
-      const dragged = finger.top - startTop;
+  popup_array[index].moveTo(left, top + tabsize);
+  popup_array[index].resizeTo(100, 150 + cnt * random * 6);
 
-      const screenPos = pageToScreen(left, top);
+  setTimeout(function () {
+    const threshold =
+      dir === 'right'
+        ? 0.1 * window.innerHeight
+        : 0.1 * window.innerHeight * 0.5;
 
-      popup_array[index].moveTo(screenPos.x, screenPos.y);
-      popup_array[index].resizeTo(100, 150 + cnt * random * 6);
+    if (dragged < threshold) {
+      movewindow(index, dir, cnt, random);
+    } else {
+      if (dir === 'right') right_activated = false;
+      if (dir === 'left') left_activated = false;
 
-      setTimeout(function () {
-        const threshold =
-          dir === 'right'
-            ? 0.1 * window.innerHeight
-            : 0.1 * window.innerHeight * 0.5;
-
-        if (dragged < threshold) {
-          movewindow(index, dir, cnt, random);
-        } else {
-          if (dir === 'right') right_activated = false;
-          if (dir === 'left') left_activated = false;
-
-          shrink_window(index, left, top, 0, 150 + cnt * random * 6, random);
-        }
-      }, 50);
+      shrink_window(index, left, top, 0, 150 + cnt * random * 6, random);
     }
+  }, 50);
+}
 
-    function shrink_window(index, left, top, cnt, height, random) {
-      cnt++;
+function shrink_window(index, left, top, cnt, height, random) {
+  cnt++;
 
-      if (!popup_array[index] || popup_array[index].closed) return;
+  if (!popup_array[index] || popup_array[index].closed) return;
 
-      if (cnt < window.innerHeight * 0.1) {
-        popup_array[index].resizeTo(
-          100,
-          random % 3 === 0 ? height + cnt * 2 : height + cnt
-        );
-      }
+  if (cnt < window.innerHeight * 0.1) {
+    popup_array[index].resizeTo(
+      100,
+      random % 3 === 0 ? height + cnt * 2 : height + cnt
+    );
+  }
 
-      const screenPos = pageToScreen(left, top + cnt * 10);
-      popup_array[index].moveTo(screenPos.x, screenPos.y);
+  popup_array[index].moveTo(left, top + tabsize + cnt * 10);
 
-      setTimeout(function () {
-        if (top < window.innerHeight * 0.7) {
-          shrink_window(index, left, top, cnt, height, random);
-        }
-      }, 50);
+  setTimeout(function () {
+    if (top < window.innerHeight * 0.7) {
+      shrink_window(index, left, top, cnt, height, random);
     }
+  }, 50);
+}
 
     const holistic = new Holistic({
       locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/${f}`
