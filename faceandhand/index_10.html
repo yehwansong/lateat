@@ -24,15 +24,15 @@
     }
 
     img, video {
-      height: 720px;
-      width: 960px;
+      height: 2160px;
+      width: 3840px;
       display: none;
     }
 
     #corner-video {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 10px;
+      left: 10px;
       width: 240px;
       height: auto;
       z-index: 99998;
@@ -120,7 +120,7 @@
   <div class="container">
     <div class="columns">
       <video class="input_video4"></video>
-      <canvas class="output4" width="1920" height="1440"></canvas>
+      <canvas class="output4" width="3840" height="2160"></canvas>
 
       <div class="dot_wrapper">
         <div class="dot dot_lefteye" style="background:red"></div>
@@ -478,8 +478,8 @@
       onFrame: async () => {
         await holistic.send({ image: video4 });
       },
-      width: 960,
-      height: 720
+      width: 3840,
+      height: 2160
     });
 
     camera.start();
