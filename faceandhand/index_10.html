@@ -16,22 +16,15 @@
     img, video { height: 720px; width: 960px; display: none; }
     canvas { height: 100%; }
     .dot_wrapper { position: absolute; pointer-events: none; }
-    .container {
-      width: 100vw; height: 100vh; overflow: hidden;
-      background: #111; max-width: 100vw !important;
-    }
+    .container { width: 100vw; height: 100vh; overflow: hidden; background: #111; max-width: 100vw !important; }
     .dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; z-index: 10000; transform: translate(-50%,-50%); }
-    .columns {
-      margin: 0 !important; left: 50%; top: 50%;
-      position: absolute;
-      transform: translateX(-50%) translateY(-50%);
-    }
+    .columns { margin: 0 !important; left: 50%; top: 50%; position: absolute; transform: translateX(-50%) translateY(-50%); }
     #debug {
       position: fixed; top: 8px; left: 8px;
-      background: rgba(0,0,0,0.75); color: #0f0;
-      font: 11px monospace; padding: 6px 10px;
+      background: rgba(0,0,0,0.85); color: #0f0;
+      font: 12px monospace; padding: 8px 12px;
       border-radius: 6px; z-index: 20000;
-      pointer-events: none; white-space: pre; line-height: 1.6;
+      pointer-events: none; white-space: pre; line-height: 1.8;
     }
   </style>
 </head>
@@ -61,10 +54,6 @@
     };
     document.addEventListener('keydown', e => { const u=keyMap[e.key.toLowerCase()]; if(u) location.href=u; });
 
-    var popup_pre_1_t=0, popup_pre_2_t=0;
-    var popup_1_l=10, popup_1_t=10, popup_1_h=10;
-    var popup_2_l=10, popup_2_t=10, popup_2_h=10;
-
     const video4 = document.getElementsByClassName('input_video4')[0];
     const out4   = document.getElementsByClassName('output4')[0];
     const ctrlEl = document.getElementsByClassName('control4')[0];
@@ -81,31 +70,28 @@
     const spinner = document.querySelector('.loading');
     spinner.ontransitionend = () => { spinner.style.display='none'; };
 
-    // The dot's .offset() gives page coords (correct).
-    // To get screen coords for moveTo():
-    //   screen_x = screenX + dot.offset().left
-    //   screen_y = screenY + toolbar + dot.offset().top
-    // BUT .offset() includes scroll. Since body has no scroll (overflow:hidden)
-    // .offset() === getBoundingClientRect() position, which is viewport-relative.
-    // So we need to use getBoundingClientRect directly, not .offset():
-    //   screen_x = screenX + el.getBoundingClientRect().left
-    //   screen_y = screenY + toolbar + el.getBoundingClientRect().top
-    function dotToScreen(selector) {
-      const el = document.querySelector(selector);
-      const r  = el.getBoundingClientRect();
-      const toolbar = window.outerHeight - window.innerHeight;
-      return {
-        x: Math.round(window.screenX + r.left),
-        y: Math.round(window.screenY + toolbar + r.top),
-      };
-    }
-
     var standard, long_standard=0;
     var popup_array=Array(5), counter=0;
     var right_activated=false, left_activated=false;
+    var popup_pre_1_t=0, popup_pre_2_t=0;
+    var popup_1_l=0, popup_1_t=0, popup_1_h=0;
+    var popup_2_l=0, popup_2_t=0, popup_2_h=0;
 
     var currentZoom=1, currentTx=0.5, currentTy=0.5;
     const ZOOM_LERP=0.08, TARGET_FILL=0.35;
+
+    // Open a calibration popup at a known screen location to measure offset
+    // Press 'c' to open a popup at screen 0,0 — tells us the true offset
+    var calibrating = false;
+    var calibPop = null;
+    document.addEventListener('keydown', e => {
+      if (e.key === 'c') {
+        calibPop = window.open('popup.html','','scrollbar');
+        calibPop.resizeTo(200, 100);
+        calibPop.moveTo(0, 0);
+        calibrating = true;
+      }
+    });
 
     function lmToWrapper(lx, ly) {
       const CW=out4.width, CH=out4.height;
@@ -113,6 +99,43 @@
       const rawX=(lx*CW - currentTx*CW)*currentZoom + CW/2;
       const rawY=(ly*CH - currentTy*CH)*currentZoom + CH/2;
       return { x: rawX*sx, y: rawY*sy };
+    }
+
+    // Get the dot's viewport position via getBoundingClientRect
+    function dotRect(sel) {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return { x: r.left + r.width/2, y: r.top + r.height/2 };
+    }
+
+    // Convert viewport px to screen px for window.moveTo
+    // On Windows Chrome: screen = screenX + viewport_x, screenY + toolbar + viewport_y
+    // BUT screenX=1533 on a 720-wide monitor means browser is on secondary monitor.
+    // The secondary monitor starts at x=1533 in Windows virtual screen coords.
+    // So moveTo(1533 + vp_x, screenY + toolbar + vp_y) puts popup on the RIGHT monitor.
+    // If we want popup on the SAME monitor as the browser: just use screenX + vp_x.
+    // The issue "top-right" means x is too big → screenX is being double-added or vp_x is wrong.
+    // Let's try: just use raw viewport px with NO screenX added — see where popup lands.
+    function vpToScreen_noOffset(vx, vy) {
+      return { x: Math.round(vx), y: Math.round(vy) };
+    }
+    function vpToScreen_withOffset(vx, vy) {
+      const toolbar = window.outerHeight - window.innerHeight;
+      return { x: Math.round(window.screenX + vx), y: Math.round(window.screenY + toolbar + vy) };
+    }
+
+    // Toggle which formula to use with 't' key — see which puts popup on finger
+    var useOffset = true;
+    document.addEventListener('keydown', e => {
+      if (e.key === 't') { useOffset = !useOffset; console.log('useOffset:', useOffset); }
+    });
+
+    function vpToScreen(vx, vy) {
+      return useOffset ? vpToScreen_withOffset(vx, vy) : vpToScreen_noOffset(vx, vy);
+    }
+
+    function dotScreen(sel) {
+      const d = dotRect(sel);
+      return vpToScreen(d.x, d.y);
     }
 
     function removeElements(lm,els){for(const e of els)delete lm[e];}
@@ -125,14 +148,12 @@
 
       if (res.faceLandmarks) {
         const fl=res.faceLandmarks;
-
         const faceH=fl[152].y-fl[10].y;
         const targZoom=faceH>0.01 ? TARGET_FILL/faceH : 1;
         currentZoom=currentZoom+(Math.min(targZoom,4)-currentZoom)*ZOOM_LERP;
         currentZoom=Math.max(0.8,Math.min(4,currentZoom));
         currentTx=Math.max(0.15,Math.min(0.85,currentTx+(fl[1].x-currentTx)*ZOOM_LERP));
         currentTy=Math.max(0.15,Math.min(0.85,currentTy+(fl[1].y-currentTy)*ZOOM_LERP));
-
         standard=get_dis(fl[386].x,fl[374].x,fl[386].y,fl[374].y)*3;
         if(!long_standard) long_standard=get_dis(fl[10].x,fl[152].x,fl[10].y,fl[152].y);
 
@@ -151,27 +172,27 @@
         $('.dot_rightfinger').css({left:p.x+'px', top:p.y+'px'});
       }
 
-      // Debug
       const toolbar=window.outerHeight-window.innerHeight;
-      const fs=dotToScreen('.dot_leftfinger');
-      const es=dotToScreen('.dot_lefteye');
-      const fr=document.querySelector('.dot_leftfinger').getBoundingClientRect();
-      const wr=document.querySelector('.dot_wrapper').getBoundingClientRect();
+      const fd=dotRect('.dot_leftfinger');
+      const fs=dotScreen('.dot_leftfinger');
       document.getElementById('debug').textContent=
-        `zoom:${currentZoom.toFixed(2)} tx:${currentTx.toFixed(3)} ty:${currentTy.toFixed(3)}\n`+
-        `wrapper rect:  L=${wr.left.toFixed(0)} T=${wr.top.toFixed(0)}\n`+
-        `finger rect:   L=${fr.left.toFixed(0)} T=${fr.top.toFixed(0)}\n`+
-        `finger screen: ${fs.x}, ${fs.y}\n`+
-        `eye screen:    ${es.x}, ${es.y}\n`+
-        `screenX/Y:     ${window.screenX}, ${window.screenY}\n`+
-        `toolbar:       ${toolbar}px\n`+
-        `screen.w/h:    ${screen.width} x ${screen.height}`;
+        `MODE: ${useOffset?'screenX+vp':'vp only'}  (press T to toggle)\n`+
+        `press C to open popup at screen 0,0\n`+
+        `─────────────────────────────────\n`+
+        `finger viewport: ${fd.x.toFixed(0)}, ${fd.y.toFixed(0)}\n`+
+        `finger screen:   ${fs.x}, ${fs.y}\n`+
+        `─────────────────────────────────\n`+
+        `screenX/Y:  ${window.screenX}, ${window.screenY}\n`+
+        `toolbar:    ${toolbar}px\n`+
+        `screen.w/h: ${screen.width} x ${screen.height}\n`+
+        `inner w/h:  ${window.innerWidth} x ${window.innerHeight}\n`+
+        `zoom: ${currentZoom.toFixed(2)}`;
 
       if (res.faceLandmarks && res.leftHandLandmarks) {
         const fl=res.faceLandmarks, lh=res.leftHandLandmarks;
         if (get_dis(fl[390].x,lh[7].x,fl[390].y,lh[7].y)<standard && !right_activated) {
           right_activated=true;
-          popup_pre_1_t=dotToScreen('.dot_leftfinger').y;
+          popup_pre_1_t=dotScreen('.dot_leftfinger').y;
           openwindow('right');
         }
       }
@@ -179,7 +200,7 @@
         const fl=res.faceLandmarks, rh=res.rightHandLandmarks;
         if (get_dis(fl[163].x,rh[7].x,fl[163].y,rh[7].y)<standard && !left_activated) {
           left_activated=true;
-          popup_pre_2_t=dotToScreen('.dot_rightfinger').y;
+          popup_pre_2_t=dotScreen('.dot_rightfinger').y;
           openwindow('left');
         }
       }
@@ -209,23 +230,22 @@
 
     function movewindow(index,dir,cnt,random){
       cnt++;
-      const ls=dotToScreen('.dot_lefteye');
-      const lf=dotToScreen('.dot_leftfinger');
-      const rs=dotToScreen('.dot_righteye');
-      const rf=dotToScreen('.dot_rightfinger');
-
       if(right_activated&&dir==='right'){
-        popup_1_l=Math.min(ls.x, lf.x);
-        popup_1_t=ls.y;
-        popup_1_h=lf.y - popup_pre_1_t;
-        popup_array[index].moveTo(popup_1_l, popup_1_t);
+        const es=dotScreen('.dot_lefteye');
+        const fs=dotScreen('.dot_leftfinger');
+        popup_1_l=Math.min(es.x,fs.x);
+        popup_1_t=es.y;
+        popup_1_h=fs.y-popup_pre_1_t;
+        popup_array[index].moveTo(popup_1_l,popup_1_t);
         popup_array[index].resizeTo(100,150+cnt*random*6);
       }
       if(left_activated&&dir==='left'){
-        popup_2_l=Math.min(rs.x, rf.x);
-        popup_2_t=rs.y;
-        popup_2_h=rf.y - popup_pre_2_t;
-        popup_array[index].moveTo(popup_2_l, popup_2_t);
+        const es=dotScreen('.dot_righteye');
+        const fs=dotScreen('.dot_rightfinger');
+        popup_2_l=Math.min(es.x,fs.x);
+        popup_2_t=es.y;
+        popup_2_h=fs.y-popup_pre_2_t;
+        popup_array[index].moveTo(popup_2_l,popup_2_t);
         popup_array[index].resizeTo(100,150+cnt*random*6);
       }
       setTimeout(function(){
@@ -244,7 +264,7 @@
       cnt++;
       if(cnt<window.innerHeight*0.1)
         popup_array[index].resizeTo(100,random%3===0?height+cnt*2:height+cnt);
-      popup_array[index].moveTo(left, top+cnt*10);
+      popup_array[index].moveTo(left,top+cnt*10);
       setTimeout(function(){
         if(top<window.innerHeight*0.7) shrink_window(index,left,top,cnt,height,random);
       });
@@ -252,18 +272,14 @@
 
     const holistic=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/${f}`});
     holistic.onResults(onResultsHolistic);
-
     const camera=new Camera(video4,{
       onFrame:async()=>{await holistic.send({image:video4});},
-      width:$('video').outerWidth(), height:$('video').outerHeight()
+      width:$('video').outerWidth(),height:$('video').outerHeight()
     });
     camera.start();
 
-    new ControlPanel(ctrlEl,{
-      selfieMode:true,upperBodyOnly:true,smoothLandmarks:true,
-      minDetectionConfidence:0.5,minTrackingConfidence:0.5
-    }).add([
-      new StaticText({title:'MediaPipe Holistic'}),fpsControl,
+    new ControlPanel(ctrlEl,{selfieMode:true,upperBodyOnly:true,smoothLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5})
+    .add([new StaticText({title:'MediaPipe Holistic'}),fpsControl,
       new Toggle({title:'Selfie Mode',field:'selfieMode'}),
       new Toggle({title:'Upper-body Only',field:'upperBodyOnly'}),
       new Toggle({title:'Smooth Landmarks',field:'smoothLandmarks'}),
