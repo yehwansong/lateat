@@ -11,431 +11,308 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/holistic.js" crossorigin="anonymous"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
-  <style type="text/css">
-    body {
-      background-color: black;
-    }
-    img, video {
-      height: 720px;
-      width: 960px;
-      display: none;
-    }
-    canvas {
-      height: 100%;
-    }
-    .dot_wrapper {
-      position: absolute;
-      pointer-events: none;
-    }
+  <style>
+    body { background: black; margin: 0; }
+    img, video { height: 720px; width: 960px; display: none; }
+    canvas { height: 100%; }
+    .dot_wrapper { position: absolute; pointer-events: none; top: 0; left: 0; }
     .container {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: #111;
-      max-width: 100vw !important;
+      width: 100vw; height: 100vh; overflow: hidden;
+      background: #111; max-width: 100vw !important;
+      position: relative;
     }
     .dot {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
       z-index: 10000;
+      transform: translate(-50%, -50%);
     }
-    .popup {
-      position: absolute;
-      background-color: blue;
-      overflow: scroll;
-    }
-    .animate {
-      transition: 1s ease-out;
-    }
+    .dot_lefteye    { background: red; }
+    .dot_righteye   { background: blue; }
+    .dot_leftfinger { background: lime; }
+    .dot_rightfinger{ background: yellow; }
     .columns {
       margin: 0 !important;
-      left: 50%;
-      top: 50%;
+      left: 50%; top: 50%;
       position: absolute;
       transform: translateX(-50%) translateY(-50%);
     }
-    .tab { height: 40px; position: absolute; background-repeat: no-repeat; z-index: 2; }
-    .tab_l { width: 50%; left: 0; top: 0; background-size: auto 100%; background-position: left; background-image: url(img/tab_1.png); }
-    .tab_r { width: 50%; right: 0; top: 0; background-size: auto 100%; background-position: right; background-image: url(img/tab_3.png); }
-    .tab_c { width: 100%; top: 0; background-size: auto 100%; background-position: center; background-color: white; z-index: 1; background-image: url(img/tab_2.png); }
-    .ex .tab { height: 30px; }
-    .ex .tab_l { background-image: url(img/tab-01.png); }
-    .ex .tab_r { background-image: url(img/tab-02.png); }
-    .ex { position: absolute; width: 200px; height: 200px; right: 10px; top: 50px; background-size: auto 100%; }
-    .ex_1 { background-image: url(img/img_1.jpg); right: 210px; }
-    .ex_2 { background-image: url(img/img_2.jpg); top: 260px; right: 210px; }
-    .ex_3 { background-image: url(img/img_3.jpg); top: 260px; }
-
-    #zoom_label {
+    #debug {
       position: fixed;
-      top: 12px;
-      left: 12px;
-      background: rgba(0,0,0,0.5);
-      color: #fff;
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      z-index: 20000;
+      top: 0; right: 0;
+      background: rgba(0,0,0,0.75);
+      color: #0f0;
+      font: 11px monospace;
+      padding: 8px 12px;
+      z-index: 99999;
       pointer-events: none;
-      font-family: monospace;
+      white-space: pre;
+      line-height: 1.6;
     }
   </style>
 </head>
-
 <body>
   <div class="container">
     <div class="columns">
       <video class="input_video4"></video>
       <canvas class="output4" width="1920px" height="1440px"></canvas>
-      <div class="dot_wrapper">
-        <div class='dot dot_lefteye'></div>
-        <div class='dot dot_righteye'></div>
-        <div class='dot dot_leftfinger'></div>
-        <div class='dot dot_rightfinger'></div>
-      </div>
+      <!-- dot_wrapper sits at 0,0 of .container, covers full viewport -->
     </div>
-    <div class="loading">
-      <div class="spinner"></div>
+    <div class="dot_wrapper" style="width:100vw;height:100vh;">
+      <div class='dot dot_lefteye'></div>
+      <div class='dot dot_righteye'></div>
+      <div class='dot dot_leftfinger'></div>
+      <div class='dot dot_rightfinger'></div>
     </div>
-    <div style="visibility: hidden" class="control4"></div>
+    <div class="loading"><div class="spinner"></div></div>
+    <div style="visibility:hidden" class="control4"></div>
   </div>
 
-  <div id="zoom_label">zoom: —</div>
+  <div id="debug">waiting for face...</div>
 
-  <script type="text/javascript">
-
-    // Key press navigation
+  <script>
     const keyMap = {
-      q: 'http://localhost:8000/index1.html',
-      w: 'http://localhost:8000/index2.html',
-      e: 'http://localhost:8000/index3.html',
-      a: 'http://localhost:8000/index4.html',
-      s: 'http://localhost:8000/index5.html',
-      d: 'http://localhost:8000/index6.html',
+      q:'http://localhost:8000/index1.html', w:'http://localhost:8000/index2.html',
+      e:'http://localhost:8000/index3.html', a:'http://localhost:8000/index4.html',
+      s:'http://localhost:8000/index5.html', d:'http://localhost:8000/index6.html',
     };
-    document.addEventListener('keydown', (e) => {
-      const url = keyMap[e.key.toLowerCase()];
-      if (url) window.location.href = url;
-    });
+    document.addEventListener('keydown', e => { const u=keyMap[e.key.toLowerCase()]; if(u) location.href=u; });
 
-    // ── popup state ──────────────────────────────────────────────────────
-    var popup_pre_1_t = 0;
-    var popup_pre_2_t = 0;
-    var popup_1_l = 10, popup_1_t = 10, popup_1_h = 10;
-    var popup_2_l = 10, popup_2_t = 10, popup_2_h = 10;
-
-    const video4 = document.getElementsByClassName('input_video4')[0];
-    const out4   = document.getElementsByClassName('output4')[0];
-    const controlsElement4 = document.getElementsByClassName('control4')[0];
-    const canvasCtx4 = out4.getContext('2d');
-
-    var c_width, c_height;
-
-    $(document).ready(function () {
-      c_width  = $('.output4').outerWidth();
-      c_height = $('.output4').outerHeight();
-      $('.dot_wrapper').css({ width: c_width + 'px', height: c_height + 'px' });
-    });
-
-    const fpsControl = new FPS();
-    const spinner = document.querySelector('.loading');
-    spinner.ontransitionend = () => { spinner.style.display = 'none'; };
+    const video4  = document.querySelector('.input_video4');
+    const out4    = document.querySelector('.output4');
+    const ctrlEl  = document.querySelector('.control4');
+    const ctx4    = out4.getContext('2d');
+    const dbg     = document.getElementById('debug');
 
     // ── zoom state ───────────────────────────────────────────────────────
-    var currentZoom = 1;
-    var currentTx   = 0;
-    var currentTy   = 0;
-    const ZOOM_LERP   = 0.08;
-    const TARGET_FILL = 0.80;
+    let zoom=1, tx=0, ty=0;
+    const LERP=0.08, FILL=0.80;
 
-    // ── gesture state ────────────────────────────────────────────────────
-    var standard, long_standard = 0;
-    var popup_array = Array(5);
-    var counter = 0;
-    var right_activated = false;
-    var left_activated  = false;
+    // ── gesture / popup state ────────────────────────────────────────────
+    let standard=0, long_standard=0;
+    let right_activated=false, left_activated=false;
+    let popup_array=[], counter=0;
+    let popup_pre_1_screenY=0, popup_pre_2_screenY=0;
+    let popup_1_l=0, popup_1_t=0, popup_1_h=0;
+    let popup_2_l=0, popup_2_t=0, popup_2_h=0;
 
-    // ── coordinate helpers ───────────────────────────────────────────────
+    // ── core coordinate helpers ──────────────────────────────────────────
 
-    // The canvas element's CSS display size vs its internal resolution.
-    // Canvas is 1920x1440 (4:3) but rendered to fit a vertical 16:9 screen,
-    // constrained by height (100vh). We need the scale factor to map
-    // canvas-space dot positions to actual screen pixels.
-    function getCanvasDisplayRect() {
-      return out4.getBoundingClientRect();
-    }
+    // Canvas internal size
+    const CW = 1920, CH = 1440;
 
-    // Convert normalised landmark [0-1] to a viewport pixel position,
-    // accounting for zoom+pan transform AND canvas CSS scaling.
-    function landmarkToViewportPx(lx, ly) {
-      const rect = getCanvasDisplayRect();
-
-      // Canvas internal resolution
-      const CW = out4.width;   // 1920
-      const CH = out4.height;  // 1440
-
-      // Scale from canvas internal px → CSS display px
-      const scaleX = rect.width  / CW;
-      const scaleY = rect.height / CH;
-
-      // Face center in canvas-internal px
-      const cx = currentTx * CW;
-      const cy = currentTy * CH;
-
-      // Apply the same zoom/pan transform we draw with:
-      //   x' = (lx*CW - cx) * zoom + CW/2
-      //   y' = (ly*CH - cy) * zoom + CH/2
-      const rawX = (lx * CW - cx) * currentZoom + CW / 2;
-      const rawY = (ly * CH - cy) * currentZoom + CH / 2;
-
-      // Now scale to CSS display size, then offset by where canvas sits in viewport
+    // Landmark [0-1] → viewport px, accounting for zoom/pan + CSS canvas scaling
+    function lmToViewport(lx, ly) {
+      const r   = out4.getBoundingClientRect();   // where canvas lives in viewport
+      const sx  = r.width  / CW;                 // CSS scale factors
+      const sy  = r.height / CH;
+      // face-center in canvas-internal px
+      const fcx = tx * CW;
+      const fcy = ty * CH;
+      // apply same transform as canvas draw
+      const rawX = (lx * CW - fcx) * zoom + CW / 2;
+      const rawY = (ly * CH - fcy) * zoom + CH / 2;
+      // scale to CSS size, add canvas offset in viewport
       return {
-        x: rawX * scaleX + rect.left,
-        y: rawY * scaleY + rect.top,
+        x: rawX * sx + r.left,
+        y: rawY * sy + r.top,
       };
     }
 
-    // Convert a viewport pixel to screen pixel (for window.moveTo)
-    function viewportToScreen(vx, vy) {
+    // Viewport px → screen px (for window.moveTo)
+    function toScreen(vx, vy) {
       const chromH = window.outerHeight - window.innerHeight;
       return {
-        x: window.screenX + vx,
-        y: window.screenY + chromH + vy,
+        x: Math.round(window.screenX + vx),
+        y: Math.round(window.screenY + chromH + vy),
       };
     }
 
-    // Get dot's true screen position using getBoundingClientRect (more reliable than .offset())
-    function dotScreenPos(selector) {
-      const el = document.querySelector(selector);
+    // Place a dot (position is relative to its parent .dot_wrapper which is 100vw/100vh at 0,0)
+    function placeDot(sel, vx, vy) {
+      const el = document.querySelector(sel);
+      el.style.left = vx + 'px';
+      el.style.top  = vy + 'px';
+    }
+
+    // Get screen coords of a dot's current position
+    function dotScreen(sel) {
+      const el = document.querySelector(sel);
       const r  = el.getBoundingClientRect();
-      const vx = r.left + r.width  / 2;
-      const vy = r.top  + r.height / 2;
-      return viewportToScreen(vx, vy);
+      return toScreen(r.left + r.width/2, r.top + r.height/2);
     }
 
-    function removeElements(landmarks, elements) {
-      for (const el of elements) delete landmarks[el];
-    }
-    function removeLandmarks(results) {
-      if (results.poseLandmarks) {
-        removeElements(results.poseLandmarks,
-          [0,1,2,3,4,5,6,7,8,9,10,15,16,17,18,19,20,21,22]);
-      }
+    function removeElements(lm, els) { for(const e of els) delete lm[e]; }
+    function removeLandmarks(res) {
+      if(res.poseLandmarks)
+        removeElements(res.poseLandmarks,[0,1,2,3,4,5,6,7,8,9,10,15,16,17,18,19,20,21,22]);
     }
 
-    function onResultsHolistic(results) {
+    const fpsControl = new FPS();
+    const spinner    = document.querySelector('.loading');
+    spinner.ontransitionend = () => { spinner.style.display='none'; };
 
-      // ── 1. Face: zoom + dot placement ───────────────────────────────
-      if (results.faceLandmarks) {
-        const fl = results.faceLandmarks;
+    function onResultsHolistic(res) {
 
-        const faceH = fl[152].y - fl[10].y;
-        const targetZoom = faceH > 0.01 ? (TARGET_FILL / faceH) : 1;
-        const targetTx = fl[1].x;
-        const targetTy = fl[1].y;
+      // 1. Face landmarks → zoom + dot positions
+      if (res.faceLandmarks) {
+        const fl = res.faceLandmarks;
 
-        currentZoom = currentZoom + (targetZoom - currentZoom) * ZOOM_LERP;
-        currentTx   = currentTx   + (targetTx   - currentTx)   * ZOOM_LERP;
-        currentTy   = currentTy   + (targetTy   - currentTy)   * ZOOM_LERP;
+        const faceH    = fl[152].y - fl[10].y;
+        const targZoom = faceH > 0.01 ? FILL / faceH : 1;
+        zoom = zoom + (targZoom - zoom) * LERP;
+        tx   = tx   + (fl[1].x  - tx)  * LERP;
+        ty   = ty   + (fl[1].y  - ty)  * LERP;
 
-        document.getElementById('zoom_label').textContent =
-          'zoom: ' + currentZoom.toFixed(2) + 'x';
+        standard = get_dis(fl[386].x,fl[374].x,fl[386].y,fl[374].y) * 3;
+        if (!long_standard)
+          long_standard = get_dis(fl[10].x,fl[152].x,fl[10].y,fl[152].y);
 
-        standard = get_dis(fl[386].x, fl[374].x, fl[386].y, fl[374].y) * 3;
-        if (long_standard === 0) {
-          long_standard = get_dis(fl[10].x, fl[152].x, fl[10].y, fl[152].y);
-        }
+        const leye = lmToViewport(fl[390].x, fl[390].y);
+        const reye = lmToViewport(fl[163].x, fl[163].y);
+        placeDot('.dot_lefteye',  leye.x, leye.y);
+        placeDot('.dot_righteye', reye.x, reye.y);
 
-        // Place eye dots using correct viewport coords
-        const leye = landmarkToViewportPx(fl[390].x, fl[390].y);
-        const reye = landmarkToViewportPx(fl[163].x, fl[163].y);
-
-        // Dot wrapper is position:absolute inside .columns (which is centered).
-        // We need positions relative to the dot_wrapper, not the whole viewport.
-        const wrapperRect = document.querySelector('.dot_wrapper').getBoundingClientRect();
-        $('.dot_lefteye').css({
-          left: (leye.x - wrapperRect.left) + 'px',
-          top:  (leye.y - wrapperRect.top)  + 'px'
-        });
-        $('.dot_righteye').css({
-          left: (reye.x - wrapperRect.left) + 'px',
-          top:  (reye.y - wrapperRect.top)  + 'px'
-        });
+        // ── debug panel ──────────────────────────────────────────────
+        const cr = out4.getBoundingClientRect();
+        const scr_leye = toScreen(leye.x, leye.y);
+        dbg.textContent =
+          `canvas rect   : left=${cr.left.toFixed(0)} top=${cr.top.toFixed(0)} w=${cr.width.toFixed(0)} h=${cr.height.toFixed(0)}\n` +
+          `canvas scale  : sx=${(cr.width/CW).toFixed(4)}  sy=${(cr.height/CH).toFixed(4)}\n` +
+          `zoom / tx,ty  : ${zoom.toFixed(2)} / ${tx.toFixed(3)}, ${ty.toFixed(3)}\n` +
+          `face lm raw   : nose=${fl[1].x.toFixed(3)},${fl[1].y.toFixed(3)}\n` +
+          `leye viewport : ${leye.x.toFixed(1)}, ${leye.y.toFixed(1)}\n` +
+          `leye screen   : ${scr_leye.x}, ${scr_leye.y}\n` +
+          `window.screen : X=${window.screenX} Y=${window.screenY}\n` +
+          `outerH/innerH : ${window.outerHeight} / ${window.innerHeight}  chromH=${window.outerHeight-window.innerHeight}\n` +
+          `viewport size : ${window.innerWidth} x ${window.innerHeight}\n` +
+          `standard      : ${standard ? standard.toFixed(4) : '—'}`;
       }
 
-      // ── 2. Hand dot placement ────────────────────────────────────────
-      if (results.leftHandLandmarks) {
-        const lf   = results.leftHandLandmarks[7];
-        const lpos = landmarkToViewportPx(lf.x, lf.y);
-        const wrapperRect = document.querySelector('.dot_wrapper').getBoundingClientRect();
-        $('.dot_leftfinger').css({
-          left: (lpos.x - wrapperRect.left) + 'px',
-          top:  (lpos.y - wrapperRect.top)  + 'px'
-        });
+      // 2. Hand dots
+      if (res.leftHandLandmarks) {
+        const p = lmToViewport(res.leftHandLandmarks[7].x, res.leftHandLandmarks[7].y);
+        placeDot('.dot_leftfinger', p.x, p.y);
       }
-      if (results.rightHandLandmarks) {
-        const rf   = results.rightHandLandmarks[7];
-        const rpos = landmarkToViewportPx(rf.x, rf.y);
-        const wrapperRect = document.querySelector('.dot_wrapper').getBoundingClientRect();
-        $('.dot_rightfinger').css({
-          left: (rpos.x - wrapperRect.left) + 'px',
-          top:  (rpos.y - wrapperRect.top)  + 'px'
-        });
+      if (res.rightHandLandmarks) {
+        const p = lmToViewport(res.rightHandLandmarks[7].x, res.rightHandLandmarks[7].y);
+        placeDot('.dot_rightfinger', p.x, p.y);
       }
 
-      // ── 3. Gesture triggers ──────────────────────────────────────────
-      if (results.faceLandmarks && results.leftHandLandmarks) {
-        const fl = results.faceLandmarks;
-        const lh = results.leftHandLandmarks;
-        if (get_dis(fl[390].x, lh[7].x, fl[390].y, lh[7].y) < standard) {
-          if (!right_activated) {
-            right_activated = true;
-            popup_pre_1_t = dotScreenPos('.dot_leftfinger').y;
-            openwindow('right');
-          }
+      // 3. Gesture triggers
+      if (res.faceLandmarks && res.leftHandLandmarks) {
+        const fl=res.faceLandmarks, lh=res.leftHandLandmarks;
+        if (get_dis(fl[390].x,lh[7].x,fl[390].y,lh[7].y) < standard && !right_activated) {
+          right_activated = true;
+          popup_pre_1_screenY = dotScreen('.dot_leftfinger').y;
+          openwindow('right');
         }
       }
-      if (results.faceLandmarks && results.rightHandLandmarks) {
-        const fl = results.faceLandmarks;
-        const rh = results.rightHandLandmarks;
-        if (get_dis(fl[163].x, rh[7].x, fl[163].y, rh[7].y) < standard) {
-          if (!left_activated) {
-            left_activated = true;
-            popup_pre_2_t = dotScreenPos('.dot_rightfinger').y;
-            openwindow('left');
-          }
+      if (res.faceLandmarks && res.rightHandLandmarks) {
+        const fl=res.faceLandmarks, rh=res.rightHandLandmarks;
+        if (get_dis(fl[163].x,rh[7].x,fl[163].y,rh[7].y) < standard && !left_activated) {
+          left_activated = true;
+          popup_pre_2_screenY = dotScreen('.dot_rightfinger').y;
+          openwindow('left');
         }
       }
 
       document.body.classList.add('loaded');
-      removeLandmarks(results);
+      removeLandmarks(res);
       fpsControl.tick();
 
-      // ── 4. Draw canvas with zoom transform ──────────────────────────
-      const w = out4.width, h = out4.height;
-      canvasCtx4.save();
-      canvasCtx4.clearRect(0, 0, w, h);
-      canvasCtx4.fillStyle = '#000';
-      canvasCtx4.fillRect(0, 0, w, h);
-
-      const cx = currentTx * w;
-      const cy = currentTy * h;
-      canvasCtx4.translate(w / 2, h / 2);
-      canvasCtx4.scale(currentZoom, currentZoom);
-      canvasCtx4.translate(-cx, -cy);
-      canvasCtx4.drawImage(results.image, 0, 0, w, h);
-      canvasCtx4.restore();
+      // 4. Draw with zoom
+      ctx4.save();
+      ctx4.clearRect(0,0,CW,CH);
+      ctx4.fillStyle='#000';
+      ctx4.fillRect(0,0,CW,CH);
+      const fcx=tx*CW, fcy=ty*CH;
+      ctx4.translate(CW/2, CH/2);
+      ctx4.scale(zoom, zoom);
+      ctx4.translate(-fcx, -fcy);
+      ctx4.drawImage(res.image, 0, 0, CW, CH);
+      ctx4.restore();
     }
 
     function openwindow(dir) {
-      const index = counter;
-      popup_array[index] = window.open("popup.html", "", "scrollbar");
-      popup_array[index].resizeTo(100, 100);
-      movewindow(index, dir, 0, Math.floor(Math.random() * 5) + 1);
-      counter++;
-      setTimeout(function () {
-        if (popup_array[index] && !popup_array[index].closed) {
-          popup_array[index].close();
-        }
-      }, 15000);
+      const idx = counter++;
+      const pw = window.open("popup.html","","scrollbar");
+      popup_array[idx] = pw;
+      pw.resizeTo(100, 100);
+      movewindow(idx, dir, 0, Math.floor(Math.random()*5)+1);
+      setTimeout(() => { if(pw && !pw.closed) pw.close(); }, 15000);
     }
 
-    function movewindow(index, dir, cnt, random) {
+    function movewindow(idx, dir, cnt, rand) {
       cnt++;
-
-      if (right_activated && dir === 'right') {
-        const eyeScr     = dotScreenPos('.dot_lefteye');
-        const fingerScr  = dotScreenPos('.dot_leftfinger');
-        popup_1_l = Math.min(eyeScr.x, fingerScr.x);
-        popup_1_t = eyeScr.y;
-        popup_1_h = fingerScr.y - popup_pre_1_t;
-        popup_array[index].moveTo(popup_1_l, popup_1_t);
-        popup_array[index].resizeTo(100, 150 + cnt * random * 6);
+      if (right_activated && dir==='right') {
+        const es = dotScreen('.dot_lefteye');
+        const fs = dotScreen('.dot_leftfinger');
+        popup_1_l = Math.min(es.x, fs.x);
+        popup_1_t = es.y;
+        popup_1_h = fs.y - popup_pre_1_screenY;
+        popup_array[idx].moveTo(popup_1_l, popup_1_t);
+        popup_array[idx].resizeTo(100, 150 + cnt*rand*6);
       }
-      if (left_activated && dir === 'left') {
-        const eyeScr     = dotScreenPos('.dot_righteye');
-        const fingerScr  = dotScreenPos('.dot_rightfinger');
-        popup_2_l = Math.min(eyeScr.x, fingerScr.x);
-        popup_2_t = eyeScr.y;
-        popup_2_h = fingerScr.y - popup_pre_2_t;
-        popup_array[index].moveTo(popup_2_l, popup_2_t);
-        popup_array[index].resizeTo(100, 150 + cnt * random * 6);
+      if (left_activated && dir==='left') {
+        const es = dotScreen('.dot_righteye');
+        const fs = dotScreen('.dot_rightfinger');
+        popup_2_l = Math.min(es.x, fs.x);
+        popup_2_t = es.y;
+        popup_2_h = fs.y - popup_pre_2_screenY;
+        popup_array[idx].moveTo(popup_2_l, popup_2_t);
+        popup_array[idx].resizeTo(100, 150 + cnt*rand*6);
       }
-
-      setTimeout(function () {
-        if (right_activated && dir === 'right') {
-          if (popup_1_h < (0.1 * window.innerHeight)) {
-            movewindow(index, dir, cnt, random);
-          } else {
-            right_activated = false;
-            shrink_window(index, popup_1_l, popup_1_t, 0, 150 + cnt * random * 6, random);
-          }
+      setTimeout(() => {
+        if (right_activated && dir==='right') {
+          if (popup_1_h < 0.1*window.innerHeight) movewindow(idx,dir,cnt,rand);
+          else { right_activated=false; shrink_window(idx,popup_1_l,popup_1_t,0,150+cnt*rand*6,rand); }
         }
-        if (left_activated && dir === 'left') {
-          if (popup_2_h < (0.1 * window.innerHeight * 0.5)) {
-            movewindow(index, dir, cnt, random);
-          } else {
-            left_activated = false;
-            shrink_window(index, popup_2_l, popup_2_t, 0, 150 + cnt * random * 6, random);
-          }
+        if (left_activated && dir==='left') {
+          if (popup_2_h < 0.05*window.innerHeight) movewindow(idx,dir,cnt,rand);
+          else { left_activated=false; shrink_window(idx,popup_2_l,popup_2_t,0,150+cnt*rand*6,rand); }
         }
       }, 50);
     }
 
-    function shrink_window(index, left, top, cnt, height, random) {
+    function shrink_window(idx, left, top, cnt, height, rand) {
       cnt++;
+      if (cnt < window.innerHeight*0.1)
+        popup_array[idx].resizeTo(100, rand%3===0 ? height+cnt*2 : height+cnt);
+      popup_array[idx].moveTo(left, top + cnt*10);
       const chromH = window.outerHeight - window.innerHeight;
-      if (cnt < window.innerHeight * 0.1) {
-        popup_array[index].resizeTo(100, random % 3 === 0 ? height + cnt * 2 : height + cnt);
-      }
-      // top is already in screen coords — just offset downward as it shrinks
-      popup_array[index].moveTo(left, top + cnt * 10);
-      setTimeout(function () {
-        // convert top back to viewport to check progress
-        const topViewport = top - (window.screenY + chromH);
-        if (topViewport < window.innerHeight * 0.7) {
-          shrink_window(index, left, top, cnt, height, random);
-        }
+      const topVP  = top - (window.screenY + chromH);
+      setTimeout(() => {
+        if (topVP < window.innerHeight*0.7) shrink_window(idx,left,top,cnt,height,rand);
       });
     }
 
     const holistic = new Holistic({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/${file}`
+      locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.1/${f}`
     });
     holistic.onResults(onResultsHolistic);
 
     const camera = new Camera(video4, {
-      onFrame: async () => { await holistic.send({ image: video4 }); },
-      width: $('video').outerWidth(),
+      onFrame: async () => { await holistic.send({image:video4}); },
+      width:  $('video').outerWidth(),
       height: $('video').outerHeight()
     });
     camera.start();
 
-    new ControlPanel(controlsElement4, {
-      selfieMode: true,
-      upperBodyOnly: true,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+    new ControlPanel(ctrlEl, {
+      selfieMode:true, upperBodyOnly:true, smoothLandmarks:true,
+      minDetectionConfidence:0.5, minTrackingConfidence:0.5
     }).add([
-      new StaticText({ title: 'MediaPipe Holistic' }),
-      fpsControl,
-      new Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
-      new Toggle({ title: 'Upper-body Only', field: 'upperBodyOnly' }),
-      new Toggle({ title: 'Smooth Landmarks', field: 'smoothLandmarks' }),
-      new Slider({ title: 'Min Detection Confidence', field: 'minDetectionConfidence', range: [0, 1], step: 0.01 }),
-      new Slider({ title: 'Min Tracking Confidence', field: 'minTrackingConfidence', range: [0, 1], step: 0.01 }),
-    ]).on(options => {
-      video4.classList.toggle('selfie', options.selfieMode);
-      holistic.setOptions(options);
-    });
+      new StaticText({title:'MediaPipe Holistic'}), fpsControl,
+      new Toggle({title:'Selfie Mode',field:'selfieMode'}),
+      new Toggle({title:'Upper-body Only',field:'upperBodyOnly'}),
+      new Toggle({title:'Smooth Landmarks',field:'smoothLandmarks'}),
+      new Slider({title:'Min Detection Confidence',field:'minDetectionConfidence',range:[0,1],step:0.01}),
+      new Slider({title:'Min Tracking Confidence',field:'minTrackingConfidence',range:[0,1],step:0.01}),
+    ]).on(opts => { video4.classList.toggle('selfie',opts.selfieMode); holistic.setOptions(opts); });
 
-    function get_dis(x1, x2, y1, y2) {
-      var a = x1 - x2, b = y1 - y2;
-      return Math.sqrt(a * a + b * b);
-    }
-
+    function get_dis(x1,x2,y1,y2){const a=x1-x2,b=y1-y2;return Math.sqrt(a*a+b*b);}
   </script>
 </body>
 </html>
