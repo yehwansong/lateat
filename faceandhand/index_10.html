@@ -65,7 +65,8 @@
       height: 14px;
       border-radius: 50%;
       z-index: 10000;
-      transform: translate(-50%, -50%);opacity:0
+      transform: translate(-50%, -50%);
+      opacity: 0;
     }
 
     .fake-popup {
@@ -100,7 +101,7 @@
       pointer-events: none;
       white-space: pre;
       line-height: 1.8;
-      display:none
+      display: none;
     }
   </style>
 </head>
@@ -149,14 +150,16 @@
     let c_width = 0;
     let c_height = 0;
 
+    // ── FIX: store finger coords directly instead of reading from DOM ──
+    let leftFingerPos  = { x: 0, y: 0 };   // viewport px (left hand finger)
+    let rightFingerPos = { x: 0, y: 0 };   // viewport px (right hand finger)
+
     function updateCanvasLayoutSize() {
       const rect = out4.getBoundingClientRect();
-
       c_width = rect.width;
       c_height = rect.height;
-
       $('.dot_wrapper').css({
-        width: c_width + 'px',
+        width:  c_width  + 'px',
         height: c_height + 'px'
       });
     }
@@ -187,7 +190,7 @@
     let currentTx = 0.5;
     let currentTy = 0.5;
 
-    const ZOOM_LERP = 0.08;
+    const ZOOM_LERP   = 0.08;
     const TARGET_FILL = 0.35;
 
     function lmToWrapper(lx, ly) {
@@ -196,7 +199,7 @@
       const CW = out4.width;
       const CH = out4.height;
 
-      const sx = c_width / CW;
+      const sx = c_width  / CW;
       const sy = c_height / CH;
 
       const rawX = (lx * CW - currentTx * CW) * currentZoom + CW / 2;
@@ -205,6 +208,18 @@
       return {
         x: rawX * sx,
         y: rawY * sy
+      };
+    }
+
+    // ── FIX: convert wrapper-relative coords to viewport coords ──
+    function wrapperToViewport(wx, wy) {
+      const rect = out4.getBoundingClientRect();
+      // out4 is inside .columns which is centered; get the wrapper offset
+      const wrapperEl = document.querySelector('.dot_wrapper');
+      const wr = wrapperEl.getBoundingClientRect();
+      return {
+        x: wr.left + wx,
+        y: wr.top  + wy
       };
     }
 
@@ -220,20 +235,10 @@
       }
     }
 
-    function getDotViewportCenter(selector) {
-      const el = document.querySelector(selector);
-      const r = el.getBoundingClientRect();
-
-      return {
-        x: r.left + r.width / 2,
-        y: r.top + r.height / 2
-      };
-    }
-
     function clampToViewport(left, top, width, height) {
       return {
-        left: Math.max(0, Math.min(window.innerWidth - width, left)),
-        top: Math.max(0, Math.min(window.innerHeight - height, top))
+        left: Math.max(0, Math.min(window.innerWidth  - width,  left)),
+        top:  Math.max(0, Math.min(window.innerHeight - height, top))
       };
     }
 
@@ -243,11 +248,11 @@
       if (res.faceLandmarks) {
         const fl = res.faceLandmarks;
 
-        const faceH = fl[152].y - fl[10].y;
+        const faceH   = fl[152].y - fl[10].y;
         const targZoom = faceH > 0.01 ? TARGET_FILL / faceH : 1;
 
         currentZoom += (Math.min(targZoom, 4) - currentZoom) * ZOOM_LERP;
-        currentZoom = Math.max(0.8, Math.min(4, currentZoom));
+        currentZoom  = Math.max(0.8, Math.min(4, currentZoom));
 
         currentTx = Math.max(0.15, Math.min(0.85, currentTx + (fl[1].x - currentTx) * ZOOM_LERP));
         currentTy = Math.max(0.15, Math.min(0.85, currentTy + (fl[1].y - currentTy) * ZOOM_LERP));
@@ -268,11 +273,21 @@
       if (res.leftHandLandmarks) {
         const p = lmToWrapper(res.leftHandLandmarks[7].x, res.leftHandLandmarks[7].y);
         $('.dot_leftfinger').css({ left: p.x + 'px', top: p.y + 'px' });
+
+        // ── FIX: store viewport position directly from landmark math ──
+        const vp = wrapperToViewport(p.x, p.y);
+        leftFingerPos.x = vp.x;
+        leftFingerPos.y = vp.y;
       }
 
       if (res.rightHandLandmarks) {
         const p = lmToWrapper(res.rightHandLandmarks[7].x, res.rightHandLandmarks[7].y);
         $('.dot_rightfinger').css({ left: p.x + 'px', top: p.y + 'px' });
+
+        // ── FIX: store viewport position directly from landmark math ──
+        const vp = wrapperToViewport(p.x, p.y);
+        rightFingerPos.x = vp.x;
+        rightFingerPos.y = vp.y;
       }
 
       if (res.faceLandmarks && res.leftHandLandmarks && standard) {
@@ -280,8 +295,8 @@
         const lh = res.leftHandLandmarks;
 
         if (get_dis(fl[390].x, lh[7].x, fl[390].y, lh[7].y) < standard && !right_activated) {
-          right_activated = true;
-          popup_pre_1_t = getDotViewportCenter('.dot_leftfinger').y;
+          right_activated  = true;
+          popup_pre_1_t    = leftFingerPos.y;   // ── FIX: use stored coord ──
           openwindow('right');
         }
       }
@@ -291,8 +306,8 @@
         const rh = res.rightHandLandmarks;
 
         if (get_dis(fl[163].x, rh[7].x, fl[163].y, rh[7].y) < standard && !left_activated) {
-          left_activated = true;
-          popup_pre_2_t = getDotViewportCenter('.dot_rightfinger').y;
+          left_activated   = true;
+          popup_pre_2_t    = rightFingerPos.y;  // ── FIX: use stored coord ──
           openwindow('left');
         }
       }
@@ -342,23 +357,23 @@
       }, 15000);
     }
 
+    function getFingerViewportPos(dir) {
+      // ── FIX: read from stored variables, not from getBoundingClientRect ──
+      return dir === 'right' ? leftFingerPos : rightFingerPos;
+    }
+
     function movewindow(index, dir, cnt, random) {
       cnt++;
 
       const popup = popup_array[index];
       if (!popup) return;
 
-      const fingerSelector =
-        dir === 'right'
-          ? '.dot_leftfinger'
-          : '.dot_rightfinger';
-
-      const finger = getDotViewportCenter(fingerSelector);
-
+      // ── FIX: use stored coords directly ──
+      const finger  = getFingerViewportPos(dir);
       const startTop = dir === 'right' ? popup_pre_1_t : popup_pre_2_t;
-      const dragged = finger.y - startTop;
+      const dragged  = finger.y - startTop;
 
-      const width = 100;
+      const width  = 100;
       const height = 150 + cnt * random * 6;
 
       const pos = clampToViewport(
@@ -368,10 +383,10 @@
         height
       );
 
-      popup.style.left = pos.left + 'px';
-      popup.style.top = pos.top + 'px';
-      popup.style.width = width + 'px';
-      popup.style.height = height + 'px';
+      popup.style.left   = pos.left + 'px';
+      popup.style.top    = pos.top  + 'px';
+      popup.style.width  = width    + 'px';
+      popup.style.height = height   + 'px';
 
       setTimeout(() => {
         const threshold =
@@ -383,7 +398,7 @@
           movewindow(index, dir, cnt, random);
         } else {
           if (dir === 'right') right_activated = false;
-          if (dir === 'left') left_activated = false;
+          if (dir === 'left')  left_activated  = false;
 
           shrink_window(index, pos.left, pos.top, 0, height, random);
         }
@@ -400,12 +415,12 @@
         popup.style.height =
           random % 3 === 0
             ? height + cnt * 2 + 'px'
-            : height + cnt + 'px';
+            : height + cnt   + 'px';
       }
 
       const newTop = top + cnt * 10;
-      popup.style.left = left + 'px';
-      popup.style.top = newTop + 'px';
+      popup.style.left = left   + 'px';
+      popup.style.top  = newTop + 'px';
 
       setTimeout(() => {
         if (newTop < window.innerHeight * 0.9) {
@@ -452,19 +467,17 @@
     }).add([
       new StaticText({ title: 'MediaPipe Holistic' }),
       fpsControl,
-      new Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
-      new Toggle({ title: 'Smooth Landmarks', field: 'smoothLandmarks' }),
+      new Toggle({ title: 'Selfie Mode',        field: 'selfieMode' }),
+      new Toggle({ title: 'Smooth Landmarks',   field: 'smoothLandmarks' }),
       new Slider({
         title: 'Min Detection Confidence',
         field: 'minDetectionConfidence',
-        range: [0, 1],
-        step: 0.01
+        range: [0, 1], step: 0.01
       }),
       new Slider({
         title: 'Min Tracking Confidence',
         field: 'minTrackingConfidence',
-        range: [0, 1],
-        step: 0.01
+        range: [0, 1], step: 0.01
       }),
     ]).on(opts => {
       video4.classList.toggle('selfie', opts.selfieMode);
