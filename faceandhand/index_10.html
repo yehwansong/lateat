@@ -134,7 +134,7 @@
     <div style="visibility:hidden" class="control4"></div>
   </div>
 
-  <video id="corner-video" src="CryDontCry.mp4" autoplay loop muted playsinline></video>
+  <video id="corner-video" src="crydontcry.mp4" autoplay loop muted playsinline></video>
 
   <div id="debug">loading...</div>
 
@@ -148,9 +148,24 @@
       d: 'http://localhost:8000/index6.html',
     };
 
+    const cornerVideo = document.getElementById('corner-video');
+
+    function tryPlayCornerVideo() {
+      cornerVideo.play().catch(() => {});
+    }
+
     document.addEventListener('keydown', e => {
+      tryPlayCornerVideo();
       const u = keyMap[e.key.toLowerCase()];
       if (u) location.href = u;
+    }, { once: false });
+
+    document.addEventListener('click', tryPlayCornerVideo, { once: true });
+    document.addEventListener('pointerdown', tryPlayCornerVideo, { once: true });
+
+    // Try immediately on load too
+    window.addEventListener('load', () => {
+      cornerVideo.play().catch(() => {});
     });
 
     const video4 = document.querySelector('.input_video4');
