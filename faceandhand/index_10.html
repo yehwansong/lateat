@@ -14,61 +14,32 @@
   <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    html, body {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      background: black;
-      overflow: hidden;
-    }
-    /* Full-screen container */
-    #main {
-      position: fixed;
-      inset: 0;
-      background: #111;
-    }
-    /* Canvas fills container, letterboxed */
+    html, body { margin:0; padding:0; width:100%; height:100%; background:black; overflow:hidden; }
+    #main { position:fixed; inset:0; background:#111; }
     #main canvas {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      /* scale to fit while preserving 4:3 aspect */
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-      display: block;
+      position:absolute;
+      top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      max-width:100%; max-height:100%;
+      width:auto; height:auto; display:block;
     }
-    /* dot overlay — full viewport, pointer-events off */
-    #dots {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 1000;
-    }
+    #dots { position:fixed; inset:0; pointer-events:none; z-index:1000; }
     .dot {
-      position: absolute;
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
+      position:absolute; width:16px; height:16px;
+      border-radius:50%; transform:translate(-50%,-50%);
     }
-    .dot_lefteye     { background: red; }
-    .dot_righteye    { background: #00f; }
-    .dot_leftfinger  { background: lime; }
-    .dot_rightfinger { background: yellow; }
-    video { display: none; }
+    .dot_lefteye     { background:red; }
+    .dot_righteye    { background:#00f; }
+    .dot_leftfinger  { background:lime; }
+    .dot_rightfinger { background:yellow; }
+    video { display:none; }
     #debug {
-      position: fixed;
-      top: 0; right: 0;
-      background: rgba(0,0,0,0.8);
-      color: #0f0;
-      font: 11px monospace;
-      padding: 8px 12px;
-      z-index: 9999;
-      pointer-events: none;
-      white-space: pre;
-      line-height: 1.7;
+      position:fixed; top:0; right:0;
+      background:rgba(0,0,0,0.85); color:#0f0;
+      font:11px monospace; padding:8px 12px;
+      z-index:9999; pointer-events:none;
+      white-space:pre; line-height:1.7;
     }
-    .loading { /* keep existing spinner working */ }
   </style>
 </head>
 <body>
@@ -77,15 +48,12 @@
     <canvas class="output4" width="1920" height="1440"></canvas>
     <div class="loading"><div class="spinner"></div></div>
   </div>
-
-  <!-- dots live in fixed overlay, coords are pure viewport px -->
   <div id="dots">
     <div class="dot dot_lefteye"></div>
     <div class="dot dot_righteye"></div>
     <div class="dot dot_leftfinger"></div>
     <div class="dot dot_rightfinger"></div>
   </div>
-
   <div style="visibility:hidden" class="control4"></div>
   <div id="debug">waiting...</div>
 
@@ -95,10 +63,7 @@
       e:'http://localhost:8000/index3.html', a:'http://localhost:8000/index4.html',
       s:'http://localhost:8000/index5.html', d:'http://localhost:8000/index6.html',
     };
-    document.addEventListener('keydown', e => {
-      const u = keyMap[e.key.toLowerCase()];
-      if (u) location.href = u;
-    });
+    document.addEventListener('keydown', e => { const u=keyMap[e.key.toLowerCase()]; if(u) location.href=u; });
 
     const video4 = document.querySelector('.input_video4');
     const out4   = document.querySelector('.output4');
@@ -106,11 +71,11 @@
     const ctx4   = out4.getContext('2d');
     const dbg    = document.getElementById('debug');
 
-    const CW = 1920, CH = 1440; // canvas internal resolution
+    const CW = 1920, CH = 1440;
 
     // ── zoom state ───────────────────────────────────────────────────────
     let zoom = 1, tx = 0.5, ty = 0.5;
-    const LERP = 0.08, FILL = 0.80;
+    const LERP = 0.08, FILL = 0.45; // reduced FILL so zoom doesn't go crazy on vertical screen
 
     // ── gesture / popup ──────────────────────────────────────────────────
     let standard = 0;
@@ -120,26 +85,21 @@
     let p1_l=0, p1_t=0, p1_h=0;
     let p2_l=0, p2_t=0, p2_h=0;
 
-    // ── coordinate helpers ───────────────────────────────────────────────
+    const CW_CANVAS = 1920, CH_CANVAS = 1440;
 
-    // Get the canvas's actual rendered rect in the viewport.
-    // Because canvas has max-width/max-height + auto, getBoundingClientRect is exact.
-    function canvasRect() {
-      return out4.getBoundingClientRect();
-    }
+    // Canvas rendered rect in viewport
+    function canvasRect() { return out4.getBoundingClientRect(); }
 
-    // Landmark [0-1] → viewport pixel, accounting for zoom+pan and canvas CSS scale/position
+    // Landmark [0-1] → viewport pixel
     function lmToVP(lx, ly) {
       const r  = canvasRect();
-      const sx = r.width  / CW;   // how much canvas is scaled in CSS
-      const sy = r.height / CH;
-
-      // canvas draw transform: translate(CW/2,CH/2) scale(zoom) translate(-tx*CW,-ty*CH)
-      // so a point (lx,ly) in landmark space maps to canvas px:
-      const rawX = (lx * CW - tx * CW) * zoom + CW / 2;
-      const rawY = (ly * CH - ty * CH) * zoom + CH / 2;
-
-      // scale to CSS display size, offset by canvas position in viewport
+      const sx = r.width  / CW_CANVAS;
+      const sy = r.height / CH_CANVAS;
+      // clamp tx/ty so we never pan outside canvas
+      const ctx_x = Math.max(0, Math.min(1, tx));
+      const ctx_y = Math.max(0, Math.min(1, ty));
+      const rawX = (lx * CW_CANVAS - ctx_x * CW_CANVAS) * zoom + CW_CANVAS / 2;
+      const rawY = (ly * CH_CANVAS - ctx_y * CH_CANVAS) * zoom + CH_CANVAS / 2;
       return {
         x: rawX * sx + r.left,
         y: rawY * sy + r.top,
@@ -147,28 +107,38 @@
     }
 
     // Viewport px → screen px for window.moveTo()
-    // On this device outerHeight < innerHeight (broken), so we use screen.availTop instead
+    // screenX is unreliable on this device (shows 1533 but browser is on a 1440px screen).
+    // Instead we treat viewport coords as screen coords directly — on Android/vertical
+    // Chrome kiosk-style setups, the browser typically fills the screen and
+    // screenX≈0, screenY≈0 after accounting for status bar.
+    // We detect the bad screenX case and ignore it.
     function vpToScreen(vx, vy) {
-      // Use window.screenX/Y for horizontal + vertical base position of the browser window.
-      // For vertical offset we use screenY which is the top of the browser window on screen.
-      // Then add the toolbar height = distance from top of browser window to top of viewport.
-      // We measure it as: window.screenY difference is unreliable; instead use
-      // screen.height - window.innerHeight - window.screenY as a fallback,
-      // but the most reliable on Android/vertical screen is just window.screenY + toolbarGuess.
-      // From debug: screenY=-3, innerH=2318, outerH=1286 → outerH is wrong (Android reports
-      // outer = physical screen minus system bars, not including chrome toolbar).
-      // Best approach: use screenY for Y base, and add zero chrome offset since
-      // on Android Chrome the window essentially IS the viewport.
-      const sx = window.screenX || 0;
-      const sy = window.screenY || 0;
+      // If screenX >= screen.width, the browser window position is reported wrong.
+      // Fall back to using viewport coords directly as screen coords.
+      const badScreenPos = (window.screenX >= screen.width) ||
+                           (window.screenX < -screen.width);
+      const sx = badScreenPos ? 0 : window.screenX;
 
-      // Detect if outerH < innerH (broken, Android-style)
+      // chromH: toolbar height. outerH < innerH means broken, treat as 0.
       const brokenOuter = window.outerHeight < window.innerHeight;
       const chromH = brokenOuter ? 0 : Math.max(0, window.outerHeight - window.innerHeight);
+
+      // screenY: if also bad (negative or > screen.height), clamp to 0
+      const rawSY = window.screenY || 0;
+      const sy = (rawSY < 0 || rawSY > screen.height) ? 0 : rawSY;
 
       return {
         x: Math.round(sx + vx),
         y: Math.round(sy + chromH + vy),
+      };
+    }
+
+    // Clamp popup position so it stays on screen
+    function clampToScreen(sx, sy, pw=100, ph=200) {
+      const sw = screen.width, sh = screen.height;
+      return {
+        x: Math.max(0, Math.min(sw - pw, sx)),
+        y: Math.max(0, Math.min(sh - ph, sy)),
       };
     }
 
@@ -196,15 +166,21 @@
 
     function onResultsHolistic(res) {
 
-      // 1. Face
       if (res.faceLandmarks) {
         const fl = res.faceLandmarks;
 
         const faceH    = fl[152].y - fl[10].y;
         const targZoom = faceH > 0.01 ? FILL / faceH : 1;
-        zoom = zoom + (targZoom - zoom) * LERP;
-        tx   = tx   + (fl[1].x  - tx)  * LERP;
-        ty   = ty   + (fl[1].y  - ty)  * LERP;
+
+        // Clamp zoom to sane range
+        const newZoom = zoom + (Math.min(targZoom, 5) - zoom) * LERP;
+        zoom = Math.max(0.5, Math.min(5, newZoom));
+
+        // Clamp tx/ty to [0.1, 0.9] so we don't pan off the canvas
+        const rawTx = tx + (fl[1].x - tx) * LERP;
+        const rawTy = ty + (fl[1].y - ty) * LERP;
+        tx = Math.max(0.1, Math.min(0.9, rawTx));
+        ty = Math.max(0.1, Math.min(0.9, rawTy));
 
         standard = get_dis(fl[386].x, fl[374].x, fl[386].y, fl[374].y) * 3;
 
@@ -215,21 +191,23 @@
 
         const r = canvasRect();
         const scr = vpToScreen(leye.x, leye.y);
-        const brokenOuter = window.outerHeight < window.innerHeight;
+        const badScreenPos = (window.screenX >= screen.width) || (window.screenX < -screen.width);
+        const brokenOuter  = window.outerHeight < window.innerHeight;
         const chromH = brokenOuter ? 0 : Math.max(0, window.outerHeight - window.innerHeight);
+
         dbg.textContent =
           `canvas rect  : L=${r.left.toFixed(0)} T=${r.top.toFixed(0)} W=${r.width.toFixed(0)} H=${r.height.toFixed(0)}\n`+
           `canvas scale : sx=${(r.width/CW).toFixed(4)} sy=${(r.height/CH).toFixed(4)}\n`+
           `zoom/tx,ty   : ${zoom.toFixed(2)} / ${tx.toFixed(3)},${ty.toFixed(3)}\n`+
           `leye vp      : ${leye.x.toFixed(1)}, ${leye.y.toFixed(1)}\n`+
           `leye screen  : ${scr.x}, ${scr.y}\n`+
-          `screenX/Y    : ${window.screenX}, ${window.screenY}\n`+
+          `screenX/Y    : ${window.screenX}, ${window.screenY} bad=${badScreenPos}\n`+
+          `screen.w/h   : ${screen.width} x ${screen.height}\n`+
           `outerH/innerH: ${window.outerHeight}/${window.innerHeight} chromH=${chromH}\n`+
           `viewport     : ${window.innerWidth} x ${window.innerHeight}\n`+
           `standard     : ${standard.toFixed(4)}`;
       }
 
-      // 2. Hands
       if (res.leftHandLandmarks) {
         const p = lmToVP(res.leftHandLandmarks[7].x, res.leftHandLandmarks[7].y);
         placeDot('.dot_leftfinger', p.x, p.y);
@@ -239,7 +217,6 @@
         placeDot('.dot_rightfinger', p.x, p.y);
       }
 
-      // 3. Gesture triggers
       if (res.faceLandmarks && res.leftHandLandmarks) {
         const fl=res.faceLandmarks, lh=res.leftHandLandmarks;
         if (get_dis(fl[390].x,lh[7].x,fl[390].y,lh[7].y) < standard && !right_activated) {
@@ -261,15 +238,15 @@
       removeLandmarks(res);
       fpsControl.tick();
 
-      // 4. Draw with zoom/pan
+      // Draw with zoom/pan
       ctx4.save();
-      ctx4.clearRect(0, 0, CW, CH);
+      ctx4.clearRect(0, 0, CW_CANVAS, CH_CANVAS);
       ctx4.fillStyle = '#000';
-      ctx4.fillRect(0, 0, CW, CH);
-      ctx4.translate(CW/2, CH/2);
+      ctx4.fillRect(0, 0, CW_CANVAS, CH_CANVAS);
+      ctx4.translate(CW_CANVAS/2, CH_CANVAS/2);
       ctx4.scale(zoom, zoom);
-      ctx4.translate(-tx*CW, -ty*CH);
-      ctx4.drawImage(res.image, 0, 0, CW, CH);
+      ctx4.translate(-tx*CW_CANVAS, -ty*CH_CANVAS);
+      ctx4.drawImage(res.image, 0, 0, CW_CANVAS, CH_CANVAS);
       ctx4.restore();
     }
 
@@ -287,18 +264,20 @@
       if (right_activated && dir==='right') {
         const es = dotScreen('.dot_lefteye');
         const fs = dotScreen('.dot_leftfinger');
-        p1_l = Math.min(es.x, fs.x);
-        p1_t = es.y;
         p1_h = fs.y - popup_pre_1_sy;
+        const raw = { x: Math.min(es.x, fs.x), y: es.y };
+        const pos = clampToScreen(raw.x, raw.y);
+        p1_l = pos.x; p1_t = pos.y;
         popup_array[idx].moveTo(p1_l, p1_t);
         popup_array[idx].resizeTo(100, 150 + cnt*rand*6);
       }
       if (left_activated && dir==='left') {
         const es = dotScreen('.dot_righteye');
         const fs = dotScreen('.dot_rightfinger');
-        p2_l = Math.min(es.x, fs.x);
-        p2_t = es.y;
         p2_h = fs.y - popup_pre_2_sy;
+        const raw = { x: Math.min(es.x, fs.x), y: es.y };
+        const pos = clampToScreen(raw.x, raw.y);
+        p2_l = pos.x; p2_t = pos.y;
         popup_array[idx].moveTo(p2_l, p2_t);
         popup_array[idx].resizeTo(100, 150 + cnt*rand*6);
       }
@@ -318,12 +297,10 @@
       cnt++;
       if (cnt < window.innerHeight*0.1)
         popup_array[idx].resizeTo(100, rand%3===0 ? height+cnt*2 : height+cnt);
-      popup_array[idx].moveTo(left, top + cnt*10);
-      const brokenOuter = window.outerHeight < window.innerHeight;
-      const chromH = brokenOuter ? 0 : Math.max(0, window.outerHeight - window.innerHeight);
-      const topVP = top - (window.screenY + chromH);
+      const pos = clampToScreen(left, top + cnt*10);
+      popup_array[idx].moveTo(pos.x, pos.y);
       setTimeout(() => {
-        if (topVP < window.innerHeight*0.7) shrink_window(idx,left,top,cnt,height,rand);
+        if (cnt < window.innerHeight*0.07) shrink_window(idx,left,top,cnt,height,rand);
       });
     }
 
@@ -339,8 +316,8 @@
     camera.start();
 
     new ControlPanel(ctrlEl, {
-      selfieMode: true, upperBodyOnly: true, smoothLandmarks: true,
-      minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
+      selfieMode:true, upperBodyOnly:true, smoothLandmarks:true,
+      minDetectionConfidence:0.5, minTrackingConfidence:0.5
     }).add([
       new StaticText({title:'MediaPipe Holistic'}), fpsControl,
       new Toggle({title:'Selfie Mode',field:'selfieMode'}),
