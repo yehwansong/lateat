@@ -33,7 +33,7 @@
     .dot_rightfinger { background:yellow; }
     video { display:none; }
     #debug {
-      position:fixed; top:0; right:0;
+      position:fixed; top:0; left:0;
       background:rgba(0,0,0,0.85); color:#0f0;
       font:11px monospace; padding:8px 12px;
       z-index:9999; pointer-events:none;
@@ -71,37 +71,43 @@
     const dbg    = document.getElementById('debug');
 
     const CW = 1920, CH = 1440;
+    const DPR = window.devicePixelRatio || 1; // 2 on this device
 
-    // zoom state
-    let zoom = 1, tx = 0.5, ty = 0.5;
-    const LERP = 0.08, FILL = 0.45;
+    // NO zoom/pan — just draw the raw camera image, no face-tracking zoom
+    // This removes the ty>1 bug entirely and makes dot positions reliable
+    // We can add zoom back once popup coords are verified working
 
     // gesture / popup state
     let standard = 0;
     let right_activated = false, left_activated = false;
     let popup_array = [], counter = 0;
-    let popup_pre_1_vy = 0, popup_pre_2_vy = 0;
+    let popup_pre_1_phy_y = 0, popup_pre_2_phy_y = 0;
     let p1_l=0, p1_t=0, p1_h=0;
     let p2_l=0, p2_t=0, p2_h=0;
 
-    // ── landmark → viewport px ───────────────────────────────────────────
-    function lmToVP(lx, ly) {
-      const r  = out4.getBoundingClientRect();
-      const sx = r.width  / CW;
-      const sy = r.height / CH;
-      const rawX = (lx * CW - tx * CW) * zoom + CW / 2;
-      const rawY = (ly * CH - ty * CH) * zoom + CH / 2;
+    // ── CSS px → physical screen px ─────────────────────────────────────
+    // window.moveTo uses PHYSICAL pixels on this device.
+    // CSS pixels × DPR = physical pixels.
+    // The browser window top-left in physical px = screenX, screenY.
+    // But screenX=1533 is wrong (browser bug on this device).
+    // Since the browser fills the screen, screenX≈0, screenY≈0 in physical px.
+    // So: physical_x = css_viewport_x * DPR
+    //     physical_y = css_viewport_y * DPR
+    function cssToPhysical(cx, cy) {
       return {
-        x: rawX * sx + r.left,
-        y: rawY * sy + r.top,
+        x: Math.round(cx * DPR),
+        y: Math.round(cy * DPR),
       };
     }
 
-    // ── viewport px → screen px ──────────────────────────────────────────
-    // On this device screenX=1533 on a 1440px screen = garbage.
-    // viewport coords ARE the correct screen coords — use them directly.
-    function vpToScreen(vx, vy) {
-      return { x: Math.round(vx), y: Math.round(vy) };
+    // ── landmark [0-1] → CSS viewport px ────────────────────────────────
+    // No zoom, just map directly through canvas display rect
+    function lmToVP(lx, ly) {
+      const r  = out4.getBoundingClientRect(); // CSS px
+      return {
+        x: lx * r.width  + r.left,
+        y: ly * r.height + r.top,
+      };
     }
 
     function placeDot(sel, vx, vy) {
@@ -110,10 +116,11 @@
       el.style.top  = vy + 'px';
     }
 
-    // Get the screen coords of a dot using its live viewport position
-    function dotScreen(sel) {
+    function dotPhysical(sel) {
       const r = document.querySelector(sel).getBoundingClientRect();
-      return vpToScreen(r.left + r.width/2, r.top + r.height/2);
+      const cx = r.left + r.width  / 2;
+      const cy = r.top  + r.height / 2;
+      return cssToPhysical(cx, cy);
     }
 
     function removeElements(lm, els) { for (const e of els) delete lm[e]; }
@@ -130,16 +137,6 @@
 
       if (res.faceLandmarks) {
         const fl = res.faceLandmarks;
-
-        const faceH    = fl[152].y - fl[10].y;
-        const targZoom = faceH > 0.01 ? FILL / faceH : 1;
-        zoom = zoom + (Math.min(targZoom, 5) - zoom) * LERP;
-        zoom = Math.max(0.5, Math.min(5, zoom));
-
-        // clamp pan so face stays on canvas
-        tx = Math.max(0.1, Math.min(0.9, tx + (fl[1].x - tx) * LERP));
-        ty = Math.max(0.1, Math.min(0.9, ty + (fl[1].y - ty) * LERP));
-
         standard = get_dis(fl[386].x, fl[374].x, fl[386].y, fl[374].y) * 3;
 
         const leye = lmToVP(fl[390].x, fl[390].y);
@@ -148,17 +145,17 @@
         placeDot('.dot_righteye', reye.x, reye.y);
 
         const r   = out4.getBoundingClientRect();
-        const scr = vpToScreen(leye.x, leye.y);
+        const phy = cssToPhysical(leye.x, leye.y);
         dbg.textContent =
-          `canvas       : L=${r.left.toFixed(0)} T=${r.top.toFixed(0)} W=${r.width.toFixed(0)} H=${r.height.toFixed(0)}\n`+
-          `scale        : sx=${(r.width/CW).toFixed(3)} sy=${(r.height/CH).toFixed(3)}\n`+
-          `zoom/tx,ty   : ${zoom.toFixed(2)} / ${tx.toFixed(3)},${ty.toFixed(3)}\n`+
-          `leye vp      : ${leye.x.toFixed(1)}, ${leye.y.toFixed(1)}\n`+
-          `leye→screen  : ${scr.x}, ${scr.y}  (=vp directly)\n`+
+          `DPR          : ${DPR}\n`+
+          `screen.w/h   : ${screen.width} x ${screen.height}  (physical px)\n`+
+          `viewport css : ${window.innerWidth} x ${window.innerHeight}\n`+
+          `canvas css   : L=${r.left.toFixed(0)} T=${r.top.toFixed(0)} W=${r.width.toFixed(0)} H=${r.height.toFixed(0)}\n`+
+          `leye css vp  : ${leye.x.toFixed(1)}, ${leye.y.toFixed(1)}\n`+
+          `leye physical: ${phy.x}, ${phy.y}  (css × DPR)\n`+
           `screenX/Y    : ${window.screenX}, ${window.screenY}\n`+
-          `screen.w/h   : ${screen.width} x ${screen.height}\n`+
-          `viewport     : ${window.innerWidth} x ${window.innerHeight}\n`+
-          `standard     : ${standard.toFixed(4)}`;
+          `standard     : ${standard.toFixed(4)}\n`+
+          `\n[are red dot + leye physical\n coords matching face position?]`;
       }
 
       if (res.leftHandLandmarks) {
@@ -174,7 +171,7 @@
         const fl=res.faceLandmarks, lh=res.leftHandLandmarks;
         if (get_dis(fl[390].x,lh[7].x,fl[390].y,lh[7].y) < standard && !right_activated) {
           right_activated = true;
-          popup_pre_1_vy = dotScreen('.dot_leftfinger').y;
+          popup_pre_1_phy_y = dotPhysical('.dot_leftfinger').y;
           openwindow('right');
         }
       }
@@ -182,7 +179,7 @@
         const fl=res.faceLandmarks, rh=res.rightHandLandmarks;
         if (get_dis(fl[163].x,rh[7].x,fl[163].y,rh[7].y) < standard && !left_activated) {
           left_activated = true;
-          popup_pre_2_vy = dotScreen('.dot_rightfinger').y;
+          popup_pre_2_phy_y = dotPhysical('.dot_rightfinger').y;
           openwindow('left');
         }
       }
@@ -191,20 +188,16 @@
       removeLandmarks(res);
       fpsControl.tick();
 
+      // Draw raw camera image — no zoom/pan for now
       ctx4.save();
       ctx4.clearRect(0,0,CW,CH);
-      ctx4.fillStyle='#000';
-      ctx4.fillRect(0,0,CW,CH);
-      ctx4.translate(CW/2, CH/2);
-      ctx4.scale(zoom, zoom);
-      ctx4.translate(-tx*CW, -ty*CH);
       ctx4.drawImage(res.image, 0, 0, CW, CH);
       ctx4.restore();
     }
 
     function openwindow(dir) {
       const idx = counter++;
-      const pw = window.open("popup.html", "", "scrollbar");
+      const pw = window.open("popup.html","","scrollbar");
       popup_array[idx] = pw;
       pw.resizeTo(100, 100);
       movewindow(idx, dir, 0, Math.floor(Math.random()*5)+1);
@@ -214,30 +207,30 @@
     function movewindow(idx, dir, cnt, rand) {
       cnt++;
       if (right_activated && dir==='right') {
-        const es = dotScreen('.dot_lefteye');
-        const fs = dotScreen('.dot_leftfinger');
+        const es = dotPhysical('.dot_lefteye');
+        const fs = dotPhysical('.dot_leftfinger');
         p1_l = Math.min(es.x, fs.x);
         p1_t = es.y;
-        p1_h = fs.y - popup_pre_1_vy;
+        p1_h = fs.y - popup_pre_1_phy_y;
         popup_array[idx].moveTo(p1_l, p1_t);
         popup_array[idx].resizeTo(100, 150 + cnt*rand*6);
       }
       if (left_activated && dir==='left') {
-        const es = dotScreen('.dot_righteye');
-        const fs = dotScreen('.dot_rightfinger');
+        const es = dotPhysical('.dot_righteye');
+        const fs = dotPhysical('.dot_rightfinger');
         p2_l = Math.min(es.x, fs.x);
         p2_t = es.y;
-        p2_h = fs.y - popup_pre_2_vy;
+        p2_h = fs.y - popup_pre_2_phy_y;
         popup_array[idx].moveTo(p2_l, p2_t);
         popup_array[idx].resizeTo(100, 150 + cnt*rand*6);
       }
       setTimeout(() => {
         if (right_activated && dir==='right') {
-          if (p1_h < 0.1*window.innerHeight) movewindow(idx,dir,cnt,rand);
+          if (p1_h < 0.1*screen.height) movewindow(idx,dir,cnt,rand);
           else { right_activated=false; shrink_window(idx,p1_l,p1_t,0,150+cnt*rand*6,rand); }
         }
         if (left_activated && dir==='left') {
-          if (p2_h < 0.05*window.innerHeight) movewindow(idx,dir,cnt,rand);
+          if (p2_h < 0.05*screen.height) movewindow(idx,dir,cnt,rand);
           else { left_activated=false; shrink_window(idx,p2_l,p2_t,0,150+cnt*rand*6,rand); }
         }
       }, 50);
@@ -245,11 +238,11 @@
 
     function shrink_window(idx, left, top, cnt, height, rand) {
       cnt++;
-      if (cnt < window.innerHeight*0.1)
+      if (cnt < screen.height * 0.1)
         popup_array[idx].resizeTo(100, rand%3===0 ? height+cnt*2 : height+cnt);
       popup_array[idx].moveTo(left, top + cnt*10);
       setTimeout(() => {
-        if (cnt < window.innerHeight*0.07) shrink_window(idx,left,top,cnt,height,rand);
+        if (cnt < screen.height * 0.07) shrink_window(idx,left,top,cnt,height,rand);
       });
     }
 
