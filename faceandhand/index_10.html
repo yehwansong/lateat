@@ -29,6 +29,16 @@
       display: none;
     }
 
+    #corner-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 240px;
+      height: auto;
+      z-index: 99998;
+      display: block;
+    }
+
     .container {
       width: 100vw;
       height: 100vh;
@@ -123,6 +133,8 @@
     <div class="loading"><div class="spinner"></div></div>
     <div style="visibility:hidden" class="control4"></div>
   </div>
+
+  <video id="corner-video" src="crydontcry.mp4" autoplay loop muted playsinline></video>
 
   <div id="debug">loading...</div>
 
