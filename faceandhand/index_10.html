@@ -68,6 +68,25 @@
       transform: translate(-50%, -50%);
     }
 
+    .fake-popup {
+      position: fixed;
+      width: 100px;
+      height: 120px;
+      background: white;
+      border: 2px solid #333;
+      z-index: 99999;
+      pointer-events: none;
+      box-shadow: 0 0 12px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+
+    .fake-popup iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      pointer-events: none;
+    }
+
     #debug {
       position: fixed;
       top: 8px;
@@ -131,6 +150,7 @@
 
     function updateCanvasLayoutSize() {
       const rect = out4.getBoundingClientRect();
+
       c_width = rect.width;
       c_height = rect.height;
 
@@ -199,31 +219,20 @@
       }
     }
 
-    function getDotCenterScreen(selector) {
+    function getDotViewportCenter(selector) {
       const el = document.querySelector(selector);
       const r = el.getBoundingClientRect();
 
-      const xInViewport = r.left + r.width / 2;
-      const yInViewport = r.top + r.height / 2;
-
-      const borderX = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
-      const toolbarY = Math.max(0, window.outerHeight - window.innerHeight - borderX);
-
       return {
-        x: Math.round(window.screenX + borderX + xInViewport),
-        y: Math.round(window.screenY + toolbarY + yInViewport)
+        x: r.left + r.width / 2,
+        y: r.top + r.height / 2
       };
     }
 
-    function clampToScreen(x, y) {
-      const minX = window.screen.availLeft || 0;
-      const minY = window.screen.availTop || 0;
-      const maxX = minX + window.screen.availWidth - 140;
-      const maxY = minY + window.screen.availHeight - 180;
-
+    function clampToViewport(left, top, width, height) {
       return {
-        x: Math.max(minX, Math.min(maxX, x)),
-        y: Math.max(minY, Math.min(maxY, y))
+        left: Math.max(0, Math.min(window.innerWidth - width, left)),
+        top: Math.max(0, Math.min(window.innerHeight - height, top))
       };
     }
 
@@ -265,24 +274,24 @@
         $('.dot_rightfinger').css({ left: p.x + 'px', top: p.y + 'px' });
       }
 
-      if (res.faceLandmarks && res.leftHandLandmarks) {
+      if (res.faceLandmarks && res.leftHandLandmarks && standard) {
         const fl = res.faceLandmarks;
         const lh = res.leftHandLandmarks;
 
         if (get_dis(fl[390].x, lh[7].x, fl[390].y, lh[7].y) < standard && !right_activated) {
           right_activated = true;
-          popup_pre_1_t = $('.dot_leftfinger').offset().top;
+          popup_pre_1_t = getDotViewportCenter('.dot_leftfinger').y;
           openwindow('right');
         }
       }
 
-      if (res.faceLandmarks && res.rightHandLandmarks) {
+      if (res.faceLandmarks && res.rightHandLandmarks && standard) {
         const fl = res.faceLandmarks;
         const rh = res.rightHandLandmarks;
 
         if (get_dis(fl[163].x, rh[7].x, fl[163].y, rh[7].y) < standard && !left_activated) {
           left_activated = true;
-          popup_pre_2_t = $('.dot_rightfinger').offset().top;
+          popup_pre_2_t = getDotViewportCenter('.dot_rightfinger').y;
           openwindow('left');
         }
       }
@@ -309,38 +318,25 @@
         `zoom: ${currentZoom.toFixed(2)}\n` +
         `right active: ${right_activated}\n` +
         `left active: ${left_activated}\n` +
-        `screenX:${window.screenX} screenY:${window.screenY}`;
+        `popups: ${popup_array.filter(Boolean).length}`;
     }
 
     function openwindow(dir) {
       const idx = counter++;
 
-      const fingerSelector = dir === 'right'
-        ? '.dot_leftfinger'
-        : '.dot_rightfinger';
+      const popup = document.createElement('div');
+      popup.className = 'fake-popup';
+      popup.innerHTML = '<iframe src="popup.html"></iframe>';
 
-      const pos = getDotCenterScreen(fingerSelector);
-      const clamped = clampToScreen(pos.x - 50, pos.y - 50);
-
-      const features =
-        `popup=yes,width=100,height=100,left=${clamped.x},top=${clamped.y},` +
-        `resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`;
-
-      popup_array[idx] = window.open('popup.html', 'popup_' + idx, features);
-
-      if (!popup_array[idx]) {
-        console.warn('Popup blocked by browser.');
-        return;
-      }
-
-      popup_array[idx].resizeTo(100, 100);
-      popup_array[idx].moveTo(clamped.x, clamped.y);
+      document.body.appendChild(popup);
+      popup_array[idx] = popup;
 
       movewindow(idx, dir, 0, Math.floor(Math.random() * 5) + 1);
 
       setTimeout(() => {
-        if (popup_array[idx] && !popup_array[idx].closed) {
-          popup_array[idx].close();
+        if (popup_array[idx]) {
+          popup_array[idx].remove();
+          popup_array[idx] = null;
         }
       }, 15000);
     }
@@ -349,33 +345,38 @@
       cnt++;
 
       const popup = popup_array[index];
-      if (!popup || popup.closed) return;
+      if (!popup) return;
 
-      const fingerSelector = dir === 'right'
-        ? '.dot_leftfinger'
-        : '.dot_rightfinger';
+      const fingerSelector =
+        dir === 'right'
+          ? '.dot_leftfinger'
+          : '.dot_rightfinger';
+
+      const finger = getDotViewportCenter(fingerSelector);
 
       const startTop = dir === 'right' ? popup_pre_1_t : popup_pre_2_t;
-      const currentFingerTop = $(fingerSelector).offset().top;
-      const dragged = currentFingerTop - startTop;
-
-      const fingerScreen = getDotCenterScreen(fingerSelector);
+      const dragged = finger.y - startTop;
 
       const width = 100;
       const height = 150 + cnt * random * 6;
 
-      const pos = clampToScreen(
-        fingerScreen.x - width / 2,
-        fingerScreen.y - 20
+      const pos = clampToViewport(
+        finger.x - width / 2,
+        finger.y - 20,
+        width,
+        height
       );
 
-      popup.moveTo(pos.x, pos.y);
-      popup.resizeTo(width, height);
+      popup.style.left = pos.left + 'px';
+      popup.style.top = pos.top + 'px';
+      popup.style.width = width + 'px';
+      popup.style.height = height + 'px';
 
       setTimeout(() => {
-        const threshold = dir === 'right'
-          ? 0.1 * window.innerHeight
-          : 0.05 * window.innerHeight;
+        const threshold =
+          dir === 'right'
+            ? 0.1 * window.innerHeight
+            : 0.05 * window.innerHeight;
 
         if (dragged < threshold) {
           movewindow(index, dir, cnt, random);
@@ -383,7 +384,7 @@
           if (dir === 'right') right_activated = false;
           if (dir === 'left') left_activated = false;
 
-          shrink_window(index, pos.x, pos.y, 0, height, random);
+          shrink_window(index, pos.left, pos.top, 0, height, random);
         }
       }, 50);
     }
@@ -392,20 +393,21 @@
       cnt++;
 
       const popup = popup_array[index];
-      if (!popup || popup.closed) return;
+      if (!popup) return;
 
       if (cnt < window.innerHeight * 0.1) {
-        popup.resizeTo(
-          100,
-          random % 3 === 0 ? height + cnt * 2 : height + cnt
-        );
+        popup.style.height =
+          random % 3 === 0
+            ? height + cnt * 2 + 'px'
+            : height + cnt + 'px';
       }
 
-      const pos = clampToScreen(left, top + cnt * 10);
-      popup.moveTo(pos.x, pos.y);
+      const newTop = top + cnt * 10;
+      popup.style.left = left + 'px';
+      popup.style.top = newTop + 'px';
 
       setTimeout(() => {
-        if (pos.y < window.screen.availHeight * 0.9) {
+        if (newTop < window.innerHeight * 0.9) {
           shrink_window(index, left, top, cnt, height, random);
         }
       }, 50);
