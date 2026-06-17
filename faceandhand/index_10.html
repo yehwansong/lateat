@@ -67,7 +67,6 @@
     .ex_2 { background-image: url(img/img_2.jpg); top: 260px; right: 210px; }
     .ex_3 { background-image: url(img/img_3.jpg); top: 260px; }
 
-    /* zoom indicator overlay */
     #zoom_label {
       position: fixed;
       top: 12px;
@@ -120,14 +119,11 @@
       if (url) window.location.href = url;
     });
 
-    // ── popup state ─────────────────────────────────────────────────────
-    var popup_1_open = false, popup_1_shrink = false;
-    var popup_1_l = 10, popup_1_t = 10, popup_1_w = 10, popup_1_h = 10;
-    var popup_pre_1_l = 10, popup_pre_1_t = 0, popup_pre_1_w = 10, popup_pre_1_h = 10;
-    var popup_2_open = false, popup_2_shrink = false;
-    var popup_2_l = 10, popup_2_t = 10, popup_2_w = 10, popup_2_h = 10;
-    var popup_pre_2_l = 10, popup_pre_2_t = 10, popup_pre_2_w = 10, popup_pre_2_h = 10;
-    var scrolldown = false;
+    // ── popup state ──────────────────────────────────────────────────────
+    var popup_pre_1_t = 0;
+    var popup_pre_2_t = 0;
+    var popup_1_l = 10, popup_1_t = 10, popup_1_h = 10;
+    var popup_2_l = 10, popup_2_t = 10, popup_2_h = 10;
 
     const video4 = document.getElementsByClassName('input_video4')[0];
     const out4   = document.getElementsByClassName('output4')[0];
@@ -147,11 +143,11 @@
     spinner.ontransitionend = () => { spinner.style.display = 'none'; };
 
     // ── zoom state ───────────────────────────────────────────────────────
-    var currentZoom   = 1;      // smoothed zoom level
-    var currentTx     = 0;      // smoothed x translate (fraction)
-    var currentTy     = 0;      // smoothed y translate (fraction)
-    const ZOOM_LERP   = 0.08;   // smoothing speed (0=frozen, 1=instant)
-    const TARGET_FILL = 0.80;   // face should fill 80% of screen height
+    var currentZoom = 1;
+    var currentTx   = 0;
+    var currentTy   = 0;
+    const ZOOM_LERP   = 0.08;
+    const TARGET_FILL = 0.80;
 
     // ── gesture state ────────────────────────────────────────────────────
     var standard, long_standard = 0;
@@ -160,13 +156,62 @@
     var right_activated = false;
     var left_activated  = false;
 
-    // ── screen offset helper ─────────────────────────────────────────────
-    // Converts viewport-relative px to screen-absolute px for window.moveTo()
-    function getScreenOffset() {
+    // ── coordinate helpers ───────────────────────────────────────────────
+
+    // The canvas element's CSS display size vs its internal resolution.
+    // Canvas is 1920x1440 (4:3) but rendered to fit a vertical 16:9 screen,
+    // constrained by height (100vh). We need the scale factor to map
+    // canvas-space dot positions to actual screen pixels.
+    function getCanvasDisplayRect() {
+      return out4.getBoundingClientRect();
+    }
+
+    // Convert normalised landmark [0-1] to a viewport pixel position,
+    // accounting for zoom+pan transform AND canvas CSS scaling.
+    function landmarkToViewportPx(lx, ly) {
+      const rect = getCanvasDisplayRect();
+
+      // Canvas internal resolution
+      const CW = out4.width;   // 1920
+      const CH = out4.height;  // 1440
+
+      // Scale from canvas internal px → CSS display px
+      const scaleX = rect.width  / CW;
+      const scaleY = rect.height / CH;
+
+      // Face center in canvas-internal px
+      const cx = currentTx * CW;
+      const cy = currentTy * CH;
+
+      // Apply the same zoom/pan transform we draw with:
+      //   x' = (lx*CW - cx) * zoom + CW/2
+      //   y' = (ly*CH - cy) * zoom + CH/2
+      const rawX = (lx * CW - cx) * currentZoom + CW / 2;
+      const rawY = (ly * CH - cy) * currentZoom + CH / 2;
+
+      // Now scale to CSS display size, then offset by where canvas sits in viewport
       return {
-        x: window.screenX,
-        y: window.screenY + (window.outerHeight - window.innerHeight)
+        x: rawX * scaleX + rect.left,
+        y: rawY * scaleY + rect.top,
       };
+    }
+
+    // Convert a viewport pixel to screen pixel (for window.moveTo)
+    function viewportToScreen(vx, vy) {
+      const chromH = window.outerHeight - window.innerHeight;
+      return {
+        x: window.screenX + vx,
+        y: window.screenY + chromH + vy,
+      };
+    }
+
+    // Get dot's true screen position using getBoundingClientRect (more reliable than .offset())
+    function dotScreenPos(selector) {
+      const el = document.querySelector(selector);
+      const r  = el.getBoundingClientRect();
+      const vx = r.left + r.width  / 2;
+      const vy = r.top  + r.height / 2;
+      return viewportToScreen(vx, vy);
     }
 
     function removeElements(landmarks, elements) {
@@ -179,32 +224,17 @@
       }
     }
 
-    // Convert a landmark [0-1] coordinate to zoomed dot-wrapper pixel
-    function landmarkToZoomedPx(lx, ly) {
-      const w = c_width, h = c_height;
-      const cx = currentTx * w;
-      const cy = currentTy * h;
-      return {
-        x: (lx * w - cx) * currentZoom + w / 2,
-        y: (ly * h - cy) * currentZoom + h / 2,
-      };
-    }
-
     function onResultsHolistic(results) {
 
-      // ── 1. Compute target zoom from face landmarks ───────────────────
+      // ── 1. Face: zoom + dot placement ───────────────────────────────
       if (results.faceLandmarks) {
         const fl = results.faceLandmarks;
 
-        // face height in normalised coords (chin to forehead)
         const faceH = fl[152].y - fl[10].y;
-        // target zoom so face fills TARGET_FILL of canvas height
         const targetZoom = faceH > 0.01 ? (TARGET_FILL / faceH) : 1;
-        // face center (nose tip)
         const targetTx = fl[1].x;
         const targetTy = fl[1].y;
 
-        // smooth toward target
         currentZoom = currentZoom + (targetZoom - currentZoom) * ZOOM_LERP;
         currentTx   = currentTx   + (targetTx   - currentTx)   * ZOOM_LERP;
         currentTy   = currentTy   + (targetTy   - currentTy)   * ZOOM_LERP;
@@ -212,29 +242,46 @@
         document.getElementById('zoom_label').textContent =
           'zoom: ' + currentZoom.toFixed(2) + 'x';
 
-        // gesture standard distance
         standard = get_dis(fl[386].x, fl[374].x, fl[386].y, fl[374].y) * 3;
         if (long_standard === 0) {
           long_standard = get_dis(fl[10].x, fl[152].x, fl[10].y, fl[152].y);
         }
 
-        // place eye dots using zoomed coords
-        const leye = landmarkToZoomedPx(fl[390].x, fl[390].y);
-        const reye = landmarkToZoomedPx(fl[163].x, fl[163].y);
-        $('.dot_lefteye').css({ left: leye.x + 'px', top: leye.y + 'px' });
-        $('.dot_righteye').css({ left: reye.x + 'px', top: reye.y + 'px' });
+        // Place eye dots using correct viewport coords
+        const leye = landmarkToViewportPx(fl[390].x, fl[390].y);
+        const reye = landmarkToViewportPx(fl[163].x, fl[163].y);
+
+        // Dot wrapper is position:absolute inside .columns (which is centered).
+        // We need positions relative to the dot_wrapper, not the whole viewport.
+        const wrapperRect = document.querySelector('.dot_wrapper').getBoundingClientRect();
+        $('.dot_lefteye').css({
+          left: (leye.x - wrapperRect.left) + 'px',
+          top:  (leye.y - wrapperRect.top)  + 'px'
+        });
+        $('.dot_righteye').css({
+          left: (reye.x - wrapperRect.left) + 'px',
+          top:  (reye.y - wrapperRect.top)  + 'px'
+        });
       }
 
       // ── 2. Hand dot placement ────────────────────────────────────────
       if (results.leftHandLandmarks) {
-        const lf = results.leftHandLandmarks[7];
-        const lpos = landmarkToZoomedPx(lf.x, lf.y);
-        $('.dot_leftfinger').css({ left: lpos.x + 'px', top: lpos.y + 'px' });
+        const lf   = results.leftHandLandmarks[7];
+        const lpos = landmarkToViewportPx(lf.x, lf.y);
+        const wrapperRect = document.querySelector('.dot_wrapper').getBoundingClientRect();
+        $('.dot_leftfinger').css({
+          left: (lpos.x - wrapperRect.left) + 'px',
+          top:  (lpos.y - wrapperRect.top)  + 'px'
+        });
       }
       if (results.rightHandLandmarks) {
-        const rf = results.rightHandLandmarks[7];
-        const rpos = landmarkToZoomedPx(rf.x, rf.y);
-        $('.dot_rightfinger').css({ left: rpos.x + 'px', top: rpos.y + 'px' });
+        const rf   = results.rightHandLandmarks[7];
+        const rpos = landmarkToViewportPx(rf.x, rf.y);
+        const wrapperRect = document.querySelector('.dot_wrapper').getBoundingClientRect();
+        $('.dot_rightfinger').css({
+          left: (rpos.x - wrapperRect.left) + 'px',
+          top:  (rpos.y - wrapperRect.top)  + 'px'
+        });
       }
 
       // ── 3. Gesture triggers ──────────────────────────────────────────
@@ -244,7 +291,7 @@
         if (get_dis(fl[390].x, lh[7].x, fl[390].y, lh[7].y) < standard) {
           if (!right_activated) {
             right_activated = true;
-            popup_pre_1_t = $('.dot_leftfinger').offset().top;
+            popup_pre_1_t = dotScreenPos('.dot_leftfinger').y;
             openwindow('right');
           }
         }
@@ -255,7 +302,7 @@
         if (get_dis(fl[163].x, rh[7].x, fl[163].y, rh[7].y) < standard) {
           if (!left_activated) {
             left_activated = true;
-            popup_pre_2_t = $('.dot_rightfinger').offset().top;
+            popup_pre_2_t = dotScreenPos('.dot_rightfinger').y;
             openwindow('left');
           }
         }
@@ -269,20 +316,15 @@
       const w = out4.width, h = out4.height;
       canvasCtx4.save();
       canvasCtx4.clearRect(0, 0, w, h);
-
-      // fill background black
       canvasCtx4.fillStyle = '#000';
       canvasCtx4.fillRect(0, 0, w, h);
 
-      // apply zoom: pivot around face center
       const cx = currentTx * w;
       const cy = currentTy * h;
       canvasCtx4.translate(w / 2, h / 2);
       canvasCtx4.scale(currentZoom, currentZoom);
       canvasCtx4.translate(-cx, -cy);
-
       canvasCtx4.drawImage(results.image, 0, 0, w, h);
-
       canvasCtx4.restore();
     }
 
@@ -299,57 +341,61 @@
       }, 15000);
     }
 
-    function movewindow(index, dir, counter, random) {
-      counter++;
-      const off = getScreenOffset();
+    function movewindow(index, dir, cnt, random) {
+      cnt++;
 
       if (right_activated && dir === 'right') {
-        popup_1_l = Math.min($('.dot_lefteye').offset().left, $('.dot_leftfinger').offset().left);
-        popup_1_t = $('.dot_lefteye').offset().top;
-        popup_1_w = Math.abs($('.dot_lefteye').offset().left - $('.dot_leftfinger').offset().left);
-        popup_1_h = $('.dot_leftfinger').offset().top - popup_pre_1_t;
-        popup_array[index].moveTo(off.x + popup_1_l, off.y + popup_1_t);
-        popup_array[index].resizeTo(100, 150 + counter * random * 6);
+        const eyeScr     = dotScreenPos('.dot_lefteye');
+        const fingerScr  = dotScreenPos('.dot_leftfinger');
+        popup_1_l = Math.min(eyeScr.x, fingerScr.x);
+        popup_1_t = eyeScr.y;
+        popup_1_h = fingerScr.y - popup_pre_1_t;
+        popup_array[index].moveTo(popup_1_l, popup_1_t);
+        popup_array[index].resizeTo(100, 150 + cnt * random * 6);
       }
       if (left_activated && dir === 'left') {
-        popup_2_l = Math.min($('.dot_righteye').offset().left, $('.dot_rightfinger').offset().left);
-        popup_2_t = $('.dot_righteye').offset().top;
-        popup_2_w = Math.abs($('.dot_righteye').offset().left - $('.dot_rightfinger').offset().left);
-        popup_2_h = $('.dot_rightfinger').offset().top - popup_pre_2_t;
-        popup_array[index].moveTo(off.x + popup_2_l, off.y + popup_2_t);
-        popup_array[index].resizeTo(100, 150 + counter * random * 6);
+        const eyeScr     = dotScreenPos('.dot_righteye');
+        const fingerScr  = dotScreenPos('.dot_rightfinger');
+        popup_2_l = Math.min(eyeScr.x, fingerScr.x);
+        popup_2_t = eyeScr.y;
+        popup_2_h = fingerScr.y - popup_pre_2_t;
+        popup_array[index].moveTo(popup_2_l, popup_2_t);
+        popup_array[index].resizeTo(100, 150 + cnt * random * 6);
       }
 
       setTimeout(function () {
         if (right_activated && dir === 'right') {
           if (popup_1_h < (0.1 * window.innerHeight)) {
-            movewindow(index, dir, counter, random);
+            movewindow(index, dir, cnt, random);
           } else {
             right_activated = false;
-            shrink_window(index, popup_1_l, popup_1_t, 0, 150 + counter * random * 6, random);
+            shrink_window(index, popup_1_l, popup_1_t, 0, 150 + cnt * random * 6, random);
           }
         }
         if (left_activated && dir === 'left') {
           if (popup_2_h < (0.1 * window.innerHeight * 0.5)) {
-            movewindow(index, dir, counter, random);
+            movewindow(index, dir, cnt, random);
           } else {
             left_activated = false;
-            shrink_window(index, popup_2_l, popup_2_t, 0, 150 + counter * random * 6, random);
+            shrink_window(index, popup_2_l, popup_2_t, 0, 150 + cnt * random * 6, random);
           }
         }
       }, 50);
     }
 
-    function shrink_window(index, left, top, counter, height, random) {
-      counter++;
-      const off = getScreenOffset();
-      if (counter < window.innerHeight * 0.1) {
-        popup_array[index].resizeTo(100, random % 3 === 0 ? height + counter * 2 : height + counter);
+    function shrink_window(index, left, top, cnt, height, random) {
+      cnt++;
+      const chromH = window.outerHeight - window.innerHeight;
+      if (cnt < window.innerHeight * 0.1) {
+        popup_array[index].resizeTo(100, random % 3 === 0 ? height + cnt * 2 : height + cnt);
       }
-      popup_array[index].moveTo(off.x + left, off.y + top + counter * 10);
+      // top is already in screen coords — just offset downward as it shrinks
+      popup_array[index].moveTo(left, top + cnt * 10);
       setTimeout(function () {
-        if (top < window.innerHeight * 0.7) {
-          shrink_window(index, left, top, counter, height, random);
+        // convert top back to viewport to check progress
+        const topViewport = top - (window.screenY + chromH);
+        if (topViewport < window.innerHeight * 0.7) {
+          shrink_window(index, left, top, cnt, height, random);
         }
       });
     }
