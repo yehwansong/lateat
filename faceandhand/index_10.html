@@ -81,30 +81,38 @@
     const spinner = document.querySelector('.loading');
     spinner.ontransitionend = () => { spinner.style.display='none'; };
 
-    function screenOffsetX() { return window.screenX; }
-    function screenOffsetY() { return window.screenY + (window.outerHeight - window.innerHeight); }
+    // The dot's .offset() gives page coords (correct).
+    // To get screen coords for moveTo():
+    //   screen_x = screenX + dot.offset().left
+    //   screen_y = screenY + toolbar + dot.offset().top
+    // BUT .offset() includes scroll. Since body has no scroll (overflow:hidden)
+    // .offset() === getBoundingClientRect() position, which is viewport-relative.
+    // So we need to use getBoundingClientRect directly, not .offset():
+    //   screen_x = screenX + el.getBoundingClientRect().left
+    //   screen_y = screenY + toolbar + el.getBoundingClientRect().top
+    function dotToScreen(selector) {
+      const el = document.querySelector(selector);
+      const r  = el.getBoundingClientRect();
+      const toolbar = window.outerHeight - window.innerHeight;
+      return {
+        x: Math.round(window.screenX + r.left),
+        y: Math.round(window.screenY + toolbar + r.top),
+      };
+    }
 
     var standard, long_standard=0;
     var popup_array=Array(5), counter=0;
     var right_activated=false, left_activated=false;
 
-    // zoom state
     var currentZoom=1, currentTx=0.5, currentTy=0.5;
     const ZOOM_LERP=0.08, TARGET_FILL=0.35;
 
-    // Convert landmark to dot_wrapper-relative px, accounting for zoom+pan
     function lmToWrapper(lx, ly) {
-      const CW=out4.width, CH=out4.height;  // 1920, 1440
-      const sx=c_width/CW, sy=c_height/CH;  // display scale
-      // Apply same transform as canvas draw
+      const CW=out4.width, CH=out4.height;
+      const sx=c_width/CW, sy=c_height/CH;
       const rawX=(lx*CW - currentTx*CW)*currentZoom + CW/2;
       const rawY=(ly*CH - currentTy*CH)*currentZoom + CH/2;
       return { x: rawX*sx, y: rawY*sy };
-    }
-
-    // dot_wrapper offset inside the page (accounts for centering via CSS transform)
-    function wrapperOffset() {
-      return $('.dot_wrapper').offset();  // jQuery gives us the true page offset
     }
 
     function removeElements(lm,els){for(const e of els)delete lm[e];}
@@ -113,14 +121,10 @@
         removeElements(res.poseLandmarks,[0,1,2,3,4,5,6,7,8,9,10,15,16,17,18,19,20,21,22]);
     }
 
-    // last known raw landmark positions for debug
-    var _lhRaw={x:0,y:0}, _fRaw={x:0,y:0};
-
     function onResultsHolistic(res) {
 
       if (res.faceLandmarks) {
         const fl=res.faceLandmarks;
-        _fRaw={x:fl[390].x, y:fl[390].y};
 
         const faceH=fl[152].y-fl[10].y;
         const targZoom=faceH>0.01 ? TARGET_FILL/faceH : 1;
@@ -139,9 +143,7 @@
       }
 
       if (res.leftHandLandmarks) {
-        const lh=res.leftHandLandmarks;
-        _lhRaw={x:lh[7].x, y:lh[7].y};
-        const p=lmToWrapper(lh[7].x,lh[7].y);
+        const p=lmToWrapper(res.leftHandLandmarks[7].x,res.leftHandLandmarks[7].y);
         $('.dot_leftfinger').css({left:p.x+'px', top:p.y+'px'});
       }
       if (res.rightHandLandmarks) {
@@ -149,30 +151,27 @@
         $('.dot_rightfinger').css({left:p.x+'px', top:p.y+'px'});
       }
 
-      // Debug — show everything needed to diagnose the offset
-      const wo=wrapperOffset();
-      const fl_off=$('.dot_leftfinger').offset();
-      const ey_off=$('.dot_lefteye').offset();
-      const ox=screenOffsetX(), oy=screenOffsetY();
+      // Debug
+      const toolbar=window.outerHeight-window.innerHeight;
+      const fs=dotToScreen('.dot_leftfinger');
+      const es=dotToScreen('.dot_lefteye');
+      const fr=document.querySelector('.dot_leftfinger').getBoundingClientRect();
+      const wr=document.querySelector('.dot_wrapper').getBoundingClientRect();
       document.getElementById('debug').textContent=
         `zoom:${currentZoom.toFixed(2)} tx:${currentTx.toFixed(3)} ty:${currentTy.toFixed(3)}\n`+
-        `c_width/h: ${c_width}, ${c_height}\n`+
-        `wrapper .offset: ${wo?wo.left.toFixed(0):'-'}, ${wo?wo.top.toFixed(0):'-'}\n`+
-        `leye lm raw:   ${_fRaw.x.toFixed(3)}, ${_fRaw.y.toFixed(3)}\n`+
-        `leye .offset:  ${ey_off?ey_off.left.toFixed(0):'-'}, ${ey_off?ey_off.top.toFixed(0):'-'}\n`+
-        `lfinger lm raw:${_lhRaw.x.toFixed(3)}, ${_lhRaw.y.toFixed(3)}\n`+
-        `lfinger.offset:${fl_off?fl_off.left.toFixed(0):'-'}, ${fl_off?fl_off.top.toFixed(0):'-'}\n`+
-        `screenOff X,Y: ${ox}, ${oy}\n`+
-        `moveTo(finger):${fl_off?(ox+fl_off.left).toFixed(0):'-'}, ${fl_off?(oy+fl_off.top).toFixed(0):'-'}\n`+
-        `screen.w/h:    ${screen.width} x ${screen.height}\n`+
+        `wrapper rect:  L=${wr.left.toFixed(0)} T=${wr.top.toFixed(0)}\n`+
+        `finger rect:   L=${fr.left.toFixed(0)} T=${fr.top.toFixed(0)}\n`+
+        `finger screen: ${fs.x}, ${fs.y}\n`+
+        `eye screen:    ${es.x}, ${es.y}\n`+
         `screenX/Y:     ${window.screenX}, ${window.screenY}\n`+
-        `toolbar:       ${window.outerHeight-window.innerHeight}`;
+        `toolbar:       ${toolbar}px\n`+
+        `screen.w/h:    ${screen.width} x ${screen.height}`;
 
       if (res.faceLandmarks && res.leftHandLandmarks) {
         const fl=res.faceLandmarks, lh=res.leftHandLandmarks;
         if (get_dis(fl[390].x,lh[7].x,fl[390].y,lh[7].y)<standard && !right_activated) {
           right_activated=true;
-          popup_pre_1_t=$('.dot_leftfinger').offset().top;
+          popup_pre_1_t=dotToScreen('.dot_leftfinger').y;
           openwindow('right');
         }
       }
@@ -180,7 +179,7 @@
         const fl=res.faceLandmarks, rh=res.rightHandLandmarks;
         if (get_dis(fl[163].x,rh[7].x,fl[163].y,rh[7].y)<standard && !left_activated) {
           left_activated=true;
-          popup_pre_2_t=$('.dot_rightfinger').offset().top;
+          popup_pre_2_t=dotToScreen('.dot_rightfinger').y;
           openwindow('left');
         }
       }
@@ -210,19 +209,23 @@
 
     function movewindow(index,dir,cnt,random){
       cnt++;
-      const ox=screenOffsetX(), oy=screenOffsetY();
+      const ls=dotToScreen('.dot_lefteye');
+      const lf=dotToScreen('.dot_leftfinger');
+      const rs=dotToScreen('.dot_righteye');
+      const rf=dotToScreen('.dot_rightfinger');
+
       if(right_activated&&dir==='right'){
-        popup_1_l=Math.min($('.dot_lefteye').offset().left,$('.dot_leftfinger').offset().left);
-        popup_1_t=$('.dot_lefteye').offset().top;
-        popup_1_h=$('.dot_leftfinger').offset().top-popup_pre_1_t;
-        popup_array[index].moveTo(ox+popup_1_l, oy+popup_1_t);
+        popup_1_l=Math.min(ls.x, lf.x);
+        popup_1_t=ls.y;
+        popup_1_h=lf.y - popup_pre_1_t;
+        popup_array[index].moveTo(popup_1_l, popup_1_t);
         popup_array[index].resizeTo(100,150+cnt*random*6);
       }
       if(left_activated&&dir==='left'){
-        popup_2_l=Math.min($('.dot_righteye').offset().left,$('.dot_rightfinger').offset().left);
-        popup_2_t=$('.dot_righteye').offset().top;
-        popup_2_h=$('.dot_rightfinger').offset().top-popup_pre_2_t;
-        popup_array[index].moveTo(ox+popup_2_l, oy+popup_2_t);
+        popup_2_l=Math.min(rs.x, rf.x);
+        popup_2_t=rs.y;
+        popup_2_h=rf.y - popup_pre_2_t;
+        popup_array[index].moveTo(popup_2_l, popup_2_t);
         popup_array[index].resizeTo(100,150+cnt*random*6);
       }
       setTimeout(function(){
@@ -239,10 +242,9 @@
 
     function shrink_window(index,left,top,cnt,height,random){
       cnt++;
-      const ox=screenOffsetX(), oy=screenOffsetY();
       if(cnt<window.innerHeight*0.1)
         popup_array[index].resizeTo(100,random%3===0?height+cnt*2:height+cnt);
-      popup_array[index].moveTo(ox+left, oy+top+cnt*10);
+      popup_array[index].moveTo(left, top+cnt*10);
       setTimeout(function(){
         if(top<window.innerHeight*0.7) shrink_window(index,left,top,cnt,height,random);
       });
