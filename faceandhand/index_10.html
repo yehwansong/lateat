@@ -474,15 +474,31 @@
 
     holistic.onResults(onResultsHolistic);
 
-    const camera = new Camera(video4, {
-      onFrame: async () => {
-        await holistic.send({ image: video4 });
-      },
-      width: 3840,
-      height: 2160
-    });
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width:  { ideal: 3840 },
+          height: { ideal: 2160 },
+          facingMode: 'user'
+        }
+      });
 
-    camera.start();
+      video4.srcObject = stream;
+      video4.onloadedmetadata = () => {
+        video4.play();
+        console.log('Camera resolution:', video4.videoWidth, 'x', video4.videoHeight);
+        requestAnimationFrame(sendFrame);
+      };
+    }
+
+    async function sendFrame() {
+      if (video4.readyState >= 2) {
+        await holistic.send({ image: video4 });
+      }
+      requestAnimationFrame(sendFrame);
+    }
+
+    startCamera();
 
     new ControlPanel(ctrlEl, {
       selfieMode: true,
