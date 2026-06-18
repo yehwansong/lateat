@@ -2,18 +2,15 @@
 <html>
 <head>
   <meta charset="utf-8">
-
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
   <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.css" crossorigin="anonymous">
   <link rel="stylesheet" href="demo.css" crossorigin="anonymous">
-
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.1/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/holistic.js" crossorigin="anonymous"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.js" crossorigin="anonymous"></script>
-
   <style>
     html, body {
       margin: 0;
@@ -22,13 +19,11 @@
       overflow: hidden;
       background: black;
     }
-
     img, .input_video4 {
       height: 2160px;
       width: 3840px;
       display: none;
     }
-
     #corner-video {
       position: fixed;
       top: 10px;
@@ -38,7 +33,6 @@
       z-index: 99998;
       display: block;
     }
-
     .container {
       width: 100vw;
       height: 100vh;
@@ -47,7 +41,6 @@
       max-width: 100vw !important;
       position: relative;
     }
-
     .columns {
       margin: 0 !important;
       left: 50%;
@@ -55,20 +48,17 @@
       position: absolute;
       transform: translate(-50%, -50%);
     }
-
     canvas {
       height: 100vh;
       width: auto;
       display: block;
     }
-
     .dot_wrapper {
       position: absolute;
       left: 0;
       top: 0;
       pointer-events: none;
     }
-
     .dot {
       position: absolute;
       width: 14px;
@@ -78,7 +68,6 @@
       transform: translate(-50%, -50%);
       opacity: 0;
     }
-
     .fake-popup {
       position: fixed;
       width: 100px;
@@ -90,14 +79,12 @@
       box-shadow: 0 0 12px rgba(0,0,0,0.5);
       overflow: hidden;
     }
-
     .fake-popup iframe {
       width: 100%;
       height: 100%;
       border: 0;
       pointer-events: none;
     }
-
     #debug {
       position: fixed;
       top: 8px;
@@ -115,13 +102,11 @@
     }
   </style>
 </head>
-
 <body>
   <div class="container">
     <div class="columns">
       <video class="input_video4"></video>
       <canvas class="output4" width="3840" height="2160"></canvas>
-
       <div class="dot_wrapper">
         <div class="dot dot_lefteye" style="background:red"></div>
         <div class="dot dot_righteye" style="background:blue"></div>
@@ -129,15 +114,11 @@
         <div class="dot dot_rightfinger" style="background:yellow"></div>
       </div>
     </div>
-
     <div class="loading"><div class="spinner"></div></div>
     <div style="visibility:hidden" class="control4"></div>
   </div>
-
   <video id="corner-video" src="CryDontCry.mp4" autoplay loop muted playsinline></video>
-
   <div id="debug">loading...</div>
-
   <script>
     const keyMap = {
       q: 'http://localhost:8000/index1.html',
@@ -147,40 +128,29 @@
       s: 'http://localhost:8000/index5.html',
       d: 'http://localhost:8000/index6.html',
     };
-
     const cornerVideo = document.getElementById('corner-video');
-
     function tryPlayCornerVideo() {
       cornerVideo.play().catch(() => {});
     }
-
     document.addEventListener('keydown', e => {
       tryPlayCornerVideo();
       const u = keyMap[e.key.toLowerCase()];
       if (u) location.href = u;
     }, { once: false });
-
     document.addEventListener('click', tryPlayCornerVideo, { once: true });
     document.addEventListener('pointerdown', tryPlayCornerVideo, { once: true });
-
-    // Try immediately on load too
     window.addEventListener('load', () => {
       cornerVideo.play().catch(() => {});
     });
-
     const video4 = document.querySelector('.input_video4');
     const out4 = document.querySelector('.output4');
     const ctrlEl = document.querySelector('.control4');
     const ctx4 = out4.getContext('2d');
     const debug = document.getElementById('debug');
-
     let c_width = 0;
     let c_height = 0;
-
-    // ── FIX: store finger coords directly instead of reading from DOM ──
-    let leftFingerPos  = { x: 0, y: 0 };   // viewport px (left hand finger)
-    let rightFingerPos = { x: 0, y: 0 };   // viewport px (right hand finger)
-
+    let leftFingerPos  = { x: 0, y: 0 };
+    let rightFingerPos = { x: 0, y: 0 };
     function updateCanvasLayoutSize() {
       const rect = out4.getBoundingClientRect();
       c_width = rect.width;
@@ -190,58 +160,40 @@
         height: c_height + 'px'
       });
     }
-
     window.addEventListener('resize', updateCanvasLayoutSize);
     $(document).ready(updateCanvasLayoutSize);
-
     const fpsControl = new FPS();
     const spinner = document.querySelector('.loading');
-
     spinner.ontransitionend = () => {
       spinner.style.display = 'none';
     };
-
     let standard;
     let long_standard = 0;
-
     let popup_array = [];
     let counter = 0;
-
     let right_activated = false;
     let left_activated = false;
-
     let popup_pre_1_t = 0;
     let popup_pre_2_t = 0;
-
     let currentZoom = 1;
     let currentTx = 0.5;
     let currentTy = 0.5;
-
     const ZOOM_LERP   = 0.08;
     const TARGET_FILL = 0.35;
-
     function lmToWrapper(lx, ly) {
       if (!c_width || !c_height) updateCanvasLayoutSize();
-
       const CW = out4.width;
       const CH = out4.height;
-
       const sx = c_width  / CW;
       const sy = c_height / CH;
-
       const rawX = (lx * CW - currentTx * CW) * currentZoom + CW / 2;
       const rawY = (ly * CH - currentTy * CH) * currentZoom + CH / 2;
-
       return {
         x: rawX * sx,
         y: rawY * sy
       };
     }
-
-    // ── FIX: convert wrapper-relative coords to viewport coords ──
     function wrapperToViewport(wx, wy) {
-      const rect = out4.getBoundingClientRect();
-      // out4 is inside .columns which is centered; get the wrapper offset
       const wrapperEl = document.querySelector('.dot_wrapper');
       const wr = wrapperEl.getBoundingClientRect();
       return {
@@ -249,11 +201,9 @@
         y: wr.top  + wy
       };
     }
-
     function removeElements(lm, els) {
       for (const e of els) delete lm[e];
     }
-
     function removeLandmarks(res) {
       if (res.poseLandmarks) {
         removeElements(res.poseLandmarks, [
@@ -261,91 +211,71 @@
         ]);
       }
     }
-
     function clampToViewport(left, top, width, height) {
       return {
         left: Math.max(0, Math.min(window.innerWidth  - width,  left)),
         top:  Math.max(0, Math.min(window.innerHeight - height, top))
       };
     }
-
     function onResultsHolistic(res) {
       updateCanvasLayoutSize();
-
       if (res.faceLandmarks) {
         const fl = res.faceLandmarks;
-
         const faceH   = fl[152].y - fl[10].y;
         const targZoom = faceH > 0.01 ? TARGET_FILL / faceH : 1;
-
         currentZoom += (Math.min(targZoom, 4) - currentZoom) * ZOOM_LERP;
         currentZoom  = Math.max(0.8, Math.min(4, currentZoom));
-
         currentTx = Math.max(0.15, Math.min(0.85, currentTx + (fl[1].x - currentTx) * ZOOM_LERP));
         currentTy = Math.max(0.15, Math.min(0.85, currentTy + (fl[1].y - currentTy) * ZOOM_LERP));
 
-        standard = get_dis(fl[386].x, fl[374].x, fl[386].y, fl[374].y) * 3;
+        // ── WIDER BOUNDARY: multiplier increased from 3 → 10 ──
+        standard = get_dis(fl[386].x, fl[374].x, fl[386].y, fl[374].y) * 10;
 
         if (!long_standard) {
           long_standard = get_dis(fl[10].x, fl[152].x, fl[10].y, fl[152].y);
         }
-
         const leye = lmToWrapper(fl[390].x, fl[390].y);
         const reye = lmToWrapper(fl[163].x, fl[163].y);
-
         $('.dot_lefteye').css({ left: leye.x + 'px', top: leye.y + 'px' });
         $('.dot_righteye').css({ left: reye.x + 'px', top: reye.y + 'px' });
       }
-
       if (res.leftHandLandmarks) {
         const p = lmToWrapper(res.leftHandLandmarks[7].x, res.leftHandLandmarks[7].y);
         $('.dot_leftfinger').css({ left: p.x + 'px', top: p.y + 'px' });
-
-        // ── FIX: store viewport position directly from landmark math ──
         const vp = wrapperToViewport(p.x, p.y);
         leftFingerPos.x = vp.x;
         leftFingerPos.y = vp.y;
       }
-
       if (res.rightHandLandmarks) {
         const p = lmToWrapper(res.rightHandLandmarks[7].x, res.rightHandLandmarks[7].y);
         $('.dot_rightfinger').css({ left: p.x + 'px', top: p.y + 'px' });
-
-        // ── FIX: store viewport position directly from landmark math ──
         const vp = wrapperToViewport(p.x, p.y);
         rightFingerPos.x = vp.x;
         rightFingerPos.y = vp.y;
       }
-
       if (res.faceLandmarks && res.leftHandLandmarks && standard) {
         const fl = res.faceLandmarks;
         const lh = res.leftHandLandmarks;
-
         if (get_dis(fl[390].x, lh[7].x, fl[390].y, lh[7].y) < standard && !right_activated) {
           right_activated  = true;
-          popup_pre_1_t    = leftFingerPos.y;   // ── FIX: use stored coord ──
+          popup_pre_1_t    = leftFingerPos.y;
           openwindow('right');
         }
       }
-
       if (res.faceLandmarks && res.rightHandLandmarks && standard) {
         const fl = res.faceLandmarks;
         const rh = res.rightHandLandmarks;
-
         if (get_dis(fl[163].x, rh[7].x, fl[163].y, rh[7].y) < standard && !left_activated) {
           left_activated   = true;
-          popup_pre_2_t    = rightFingerPos.y;  // ── FIX: use stored coord ──
+          popup_pre_2_t    = rightFingerPos.y;
           openwindow('left');
         }
       }
-
       document.body.classList.add('loaded');
       removeLandmarks(res);
       fpsControl.tick();
-
       const CW = out4.width;
       const CH = out4.height;
-
       ctx4.save();
       ctx4.clearRect(0, 0, CW, CH);
       ctx4.fillStyle = '#000';
@@ -355,7 +285,6 @@
       ctx4.translate(-currentTx * CW, -currentTy * CH);
       ctx4.drawImage(res.image, 0, 0, CW, CH);
       ctx4.restore();
-
       debug.textContent =
         `FACE: ${res.faceLandmarks ? 'YES' : 'NO'}\n` +
         `zoom: ${currentZoom.toFixed(2)}\n` +
@@ -363,19 +292,14 @@
         `left active: ${left_activated}\n` +
         `popups: ${popup_array.filter(Boolean).length}`;
     }
-
     function openwindow(dir) {
       const idx = counter++;
-
       const popup = document.createElement('div');
       popup.className = 'fake-popup';
       popup.innerHTML = '<iframe src="popup.html"></iframe>';
-
       document.body.appendChild(popup);
       popup_array[idx] = popup;
-
       movewindow(idx, dir, 0, Math.floor(Math.random() * 5) + 1);
-
       setTimeout(() => {
         if (popup_array[idx]) {
           popup_array[idx].remove();
@@ -383,83 +307,64 @@
         }
       }, 15000);
     }
-
     function getFingerViewportPos(dir) {
-      // ── FIX: read from stored variables, not from getBoundingClientRect ──
       return dir === 'right' ? leftFingerPos : rightFingerPos;
     }
-
     function movewindow(index, dir, cnt, random) {
       cnt++;
-
       const popup = popup_array[index];
       if (!popup) return;
-
-      // ── FIX: use stored coords directly ──
       const finger  = getFingerViewportPos(dir);
       const startTop = dir === 'right' ? popup_pre_1_t : popup_pre_2_t;
       const dragged  = finger.y - startTop;
-
       const width  = 100;
       const height = 150 + cnt * random * 6;
-
       const pos = clampToViewport(
         finger.x - width / 2,
         finger.y - 20,
         width,
         height
       );
-
       popup.style.left   = pos.left + 'px';
       popup.style.top    = pos.top  + 'px';
       popup.style.width  = width    + 'px';
       popup.style.height = height   + 'px';
-
       setTimeout(() => {
         const threshold =
           dir === 'right'
             ? 0.1 * window.innerHeight
             : 0.05 * window.innerHeight;
-
         if (dragged < threshold) {
           movewindow(index, dir, cnt, random);
         } else {
           if (dir === 'right') right_activated = false;
           if (dir === 'left')  left_activated  = false;
-
           shrink_window(index, pos.left, pos.top, 0, height, random);
         }
       }, 50);
     }
-
     function shrink_window(index, left, top, cnt, height, random) {
       cnt++;
-
       const popup = popup_array[index];
       if (!popup) return;
-
       if (cnt < window.innerHeight * 0.1) {
         popup.style.height =
           random % 3 === 0
             ? height + cnt * 2 + 'px'
             : height + cnt   + 'px';
       }
-
       const newTop = top + cnt * 10;
       popup.style.left = left   + 'px';
       popup.style.top  = newTop + 'px';
-
       setTimeout(() => {
         if (newTop < window.innerHeight * 0.9) {
           shrink_window(index, left, top, cnt, height, random);
         }
       }, 50);
     }
-
     const holistic = new Holistic({
       locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/${f}`
     });
-
     holistic.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
@@ -471,9 +376,7 @@
       selfieMode: true,
       upperBodyOnly: false,
     });
-
     holistic.onResults(onResultsHolistic);
-
     async function startCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -482,7 +385,6 @@
           facingMode: 'user'
         }
       });
-
       video4.srcObject = stream;
       video4.onloadedmetadata = () => {
         video4.play();
@@ -490,16 +392,13 @@
         requestAnimationFrame(sendFrame);
       };
     }
-
     async function sendFrame() {
       if (video4.readyState >= 2) {
         await holistic.send({ image: video4 });
       }
       requestAnimationFrame(sendFrame);
     }
-
     startCamera();
-
     new ControlPanel(ctrlEl, {
       selfieMode: true,
       upperBodyOnly: false,
@@ -526,7 +425,6 @@
       video4.classList.toggle('selfie', opts.selfieMode);
       holistic.setOptions(opts);
     });
-
     function get_dis(x1, x2, y1, y2) {
       const a = x1 - x2;
       const b = y1 - y2;
