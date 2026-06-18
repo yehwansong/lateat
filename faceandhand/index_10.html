@@ -85,37 +85,6 @@
       border: 0;
       pointer-events: none;
     }
-    /* Cross-eye popup alert */
-    .cross-eye-popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      border: 3px solid red;
-      border-radius: 12px;
-      padding: 30px 40px;
-      z-index: 999999;
-      text-align: center;
-      font-family: sans-serif;
-      font-size: 22px;
-      font-weight: bold;
-      box-shadow: 0 0 30px rgba(255,0,0,0.5);
-      color: #333;
-      min-width: 300px;
-    }
-    .cross-eye-popup .close-btn {
-      margin-top: 18px;
-      display: inline-block;
-      background: red;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 24px;
-      font-size: 16px;
-      cursor: pointer;
-      pointer-events: all;
-    }
     #debug {
       position: fixed;
       top: 8px;
@@ -130,18 +99,6 @@
       white-space: pre;
       line-height: 1.8;
       display: none;
-    }
-    #refresh-timer {
-      position: fixed;
-      bottom: 12px;
-      right: 16px;
-      background: rgba(0,0,0,0.7);
-      color: #fff;
-      font: bold 14px monospace;
-      padding: 6px 14px;
-      border-radius: 8px;
-      z-index: 20001;
-      pointer-events: none;
     }
   </style>
 </head>
@@ -162,59 +119,7 @@
   </div>
   <video id="corner-video" src="CryDontCry.mp4" autoplay loop muted playsinline></video>
   <div id="debug">loading...</div>
-  <div id="refresh-timer">Refresh in: 3s</div>
-
   <script>
-    // ── AUTO-REFRESH every 3 seconds ──────────────────────────────────────
-    let refreshCountdown = 3;
-    const timerEl = document.getElementById('refresh-timer');
-    setInterval(() => {
-      refreshCountdown--;
-      timerEl.textContent = `Refresh in: ${refreshCountdown}s`;
-      if (refreshCountdown <= 0) {
-        location.reload();
-      }
-    }, 1000);
-
-    // ── CROSS-EYE POPUP ───────────────────────────────────────────────────
-    let crossEyePopupShowing = false;
-    let crossEyeCooldown = false;
-
-    function showCrossEyePopup(which) {
-      if (crossEyePopupShowing || crossEyeCooldown) return;
-      crossEyePopupShowing = true;
-
-      const msg = which === 'left_to_right'
-        ? '👁️ Left hand → Right eye detected!'
-        : '👁️ Right hand → Left eye detected!';
-
-      const popup = document.createElement('div');
-      popup.className = 'cross-eye-popup';
-      popup.innerHTML = `
-        <div>${msg}</div>
-        <button class="close-btn" id="crossEyeClose">OK</button>
-      `;
-      document.body.appendChild(popup);
-
-      document.getElementById('crossEyeClose').addEventListener('click', () => {
-        popup.remove();
-        crossEyePopupShowing = false;
-        crossEyeCooldown = true;
-        setTimeout(() => { crossEyeCooldown = false; }, 2000);
-      });
-
-      // Auto-dismiss after 4 seconds
-      setTimeout(() => {
-        if (popup.parentNode) {
-          popup.remove();
-          crossEyePopupShowing = false;
-          crossEyeCooldown = true;
-          setTimeout(() => { crossEyeCooldown = false; }, 2000);
-        }
-      }, 4000);
-    }
-
-    // ── EXISTING CODE ─────────────────────────────────────────────────────
     const keyMap = {
       q: 'http://localhost:8000/index1.html',
       w: 'http://localhost:8000/index2.html',
@@ -322,7 +227,10 @@
         currentZoom  = Math.max(0.8, Math.min(4, currentZoom));
         currentTx = Math.max(0.15, Math.min(0.85, currentTx + (fl[1].x - currentTx) * ZOOM_LERP));
         currentTy = Math.max(0.15, Math.min(0.85, currentTy + (fl[1].y - currentTy) * ZOOM_LERP));
+
+        // ── WIDER BOUNDARY: multiplier increased from 3 → 10 ──
         standard = get_dis(fl[386].x, fl[374].x, fl[386].y, fl[374].y) * 10;
+
         if (!long_standard) {
           long_standard = get_dis(fl[10].x, fl[152].x, fl[10].y, fl[152].y);
         }
@@ -345,34 +253,22 @@
         rightFingerPos.x = vp.x;
         rightFingerPos.y = vp.y;
       }
-      // ── LEFT HAND finger → RIGHT eye (original "right" gesture) ──
       if (res.faceLandmarks && res.leftHandLandmarks && standard) {
         const fl = res.faceLandmarks;
         const lh = res.leftHandLandmarks;
-        // Original popup trigger
         if (get_dis(fl[390].x, lh[7].x, fl[390].y, lh[7].y) < standard && !right_activated) {
           right_activated  = true;
           popup_pre_1_t    = leftFingerPos.y;
           openwindow('right');
         }
-        // Cross-eye: left finger near RIGHT eye (fl[163] = right eye inner)
-        if (get_dis(fl[163].x, lh[7].x, fl[163].y, lh[7].y) < standard) {
-          showCrossEyePopup('left_to_right');
-        }
       }
-      // ── RIGHT HAND finger → LEFT eye (original "left" gesture) ──
       if (res.faceLandmarks && res.rightHandLandmarks && standard) {
         const fl = res.faceLandmarks;
         const rh = res.rightHandLandmarks;
-        // Original popup trigger
         if (get_dis(fl[163].x, rh[7].x, fl[163].y, rh[7].y) < standard && !left_activated) {
           left_activated   = true;
           popup_pre_2_t    = rightFingerPos.y;
           openwindow('left');
-        }
-        // Cross-eye: right finger near LEFT eye (fl[390] = left eye inner)
-        if (get_dis(fl[390].x, rh[7].x, fl[390].y, rh[7].y) < standard) {
-          showCrossEyePopup('right_to_left');
         }
       }
       document.body.classList.add('loaded');
